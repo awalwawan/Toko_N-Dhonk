@@ -1,82 +1,551 @@
 <!DOCTYPE html>
-<html>
-<head><title>TEST POS</title></head>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TOKO N-Dhonk POS</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family:'Plus Jakarta Sans',sans-serif; background:#0f172a; color:#f1f5f9; min-height:100vh; }
+        .container { max-width:480px; margin:0 auto; }
+        
+        .topbar { background:#1e293b; padding:12px 16px; display:flex; justify-content:space-between; align-items:center; font-size:13px; }
+        .dot { width:8px; height:8px; border-radius:50%; background:#34d399; display:inline-block; margin-right:6px; }
+        .dot.off { background:#f87171; }
+        .session { padding:6px 14px; border-radius:20px; font-weight:700; font-size:11px; }
+        .session.pagi { background:#fbbf24; color:#000; }
+        .session.malam { background:#6366f1; color:#fff; }
+        
+        .header { padding:20px 16px; display:flex; align-items:center; gap:12px; }
+        .logo { width:50px; height:50px; background:linear-gradient(135deg,#0ea5e9,#8b5cf6); border-radius:16px; display:flex; align-items:center; justify-content:center; font-size:24px; }
+        .header h1 { font-size:20px; font-weight:800; }
+        .header p { font-size:11px; color:#94a3b8; }
+        
+        .tabs { padding:8px 16px; display:flex; gap:8px; overflow-x:auto; }
+        .tab { padding:10px 18px; border-radius:24px; border:1px solid #334155; background:transparent; color:#94a3b8; font-weight:600; font-size:13px; cursor:pointer; white-space:nowrap; }
+        .tab.active { background:linear-gradient(135deg,#0ea5e9,#8b5cf6); color:#fff; border-color:transparent; }
+        
+        .grid { padding:12px; display:grid; grid-template-columns:1fr 1fr; gap:10px; padding-bottom:180px; }
+        .card { background:#1e293b; border:1px solid #334155; border-radius:12px; padding:16px; cursor:pointer; }
+        .card:active { border-color:#38bdf8; }
+        .card .emoji { font-size:32px; display:block; margin-bottom:8px; }
+        .card .name { font-weight:600; font-size:13px; margin-bottom:4px; }
+        .card .price { font-weight:700; font-size:15px; color:#38bdf8; }
+        
+        .empty { text-align:center; padding:60px 20px; grid-column:1/-1; color:#64748b; }
+        .empty .icon { font-size:60px; margin-bottom:16px; }
+        
+        .cart { position:fixed; bottom:0; left:50%; transform:translateX(-50%); width:100%; max-width:480px; background:#1e293b; border-radius:24px 24px 0 0; padding:16px; box-shadow:0 -4px 20px rgba(0,0,0,0.5); }
+        .cart-chips { display:flex; gap:8px; overflow-x:auto; margin-bottom:12px; min-height:28px; }
+        .chip { background:rgba(56,189,248,0.1); padding:6px 12px; border-radius:20px; font-size:12px; font-weight:600; white-space:nowrap; display:flex; align-items:center; gap:6px; }
+        .chip span { color:#f87171; cursor:pointer; font-weight:700; }
+        .cart-row { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+        .cart-total { font-weight:800; font-size:24px; color:#38bdf8; }
+        .cart-actions { display:flex; gap:8px; }
+        
+        .btn { padding:14px; border-radius:12px; border:none; font-weight:700; font-size:14px; cursor:pointer; font-family:inherit; }
+        .btn-pay { flex:1; background:linear-gradient(135deg,#0ea5e9,#8b5cf6); color:#fff; }
+        .btn-clr { background:transparent; border:1px solid #334155; color:#f87171; }
+        .btn:disabled { opacity:0.5; pointer-events:none; }
+        .btn:active { transform:scale(0.97); }
+        
+        .modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:1000; justify-content:center; align-items:center; }
+        .modal.show { display:flex; }
+        .modal-box { background:#1e293b; border:1px solid #334155; border-radius:16px; padding:24px; width:92%; max-width:400px; max-height:85vh; overflow-y:auto; }
+        .modal-box h3 { font-size:18px; margin-bottom:16px; }
+        .modal-box label { display:block; font-size:13px; color:#94a3b8; margin-bottom:6px; font-weight:600; }
+        .modal-box input, .modal-box select { width:100%; padding:12px; border-radius:12px; border:1px solid #334155; background:#0f172a; color:#fff; font-size:14px; margin-bottom:12px; font-family:inherit; }
+        .modal-box input:focus, .modal-box select:focus { outline:none; border-color:#38bdf8; }
+        .modal-close { float:right; background:none; border:none; color:#fff; font-size:20px; cursor:pointer; }
+        
+        .pay-opt { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:16px 0; }
+        .pay-opt div { padding:20px; border:2px solid #334155; border-radius:12px; text-align:center; cursor:pointer; font-weight:600; }
+        .pay-opt div.active { border-color:#38bdf8; background:rgba(56,189,248,0.1); }
+        
+        .report-card { background:#0f172a; border:1px solid #334155; border-radius:12px; padding:14px; margin-bottom:10px; }
+        .report-card h4 { margin-bottom:8px; }
+        .report-row { display:flex; justify-content:space-between; padding:6px 0; font-size:13px; color:#94a3b8; border-bottom:1px solid #1e293b; }
+        .report-total { font-weight:700; margin-top:8px; padding-top:8px; border-top:2px solid #334155; }
+        .grand { font-size:18px; color:#38bdf8; }
+        
+        .toast { position:fixed; top:16px; left:50%; transform:translateX(-50%); background:#1e293b; border-left:3px solid #34d399; padding:14px 18px; border-radius:12px; z-index:3000; font-size:13px; font-weight:500; animation:slideIn 0.3s ease; }
+        .toast.err { border-color:#f87171; }
+        @keyframes slideIn { from { opacity:0; transform:translateX(-50%) translateY(-20px); } }
+        
+        .loading { display:none; position:fixed; inset:0; background:rgba(15,23,42,0.9); z-index:4000; justify-content:center; align-items:center; }
+        .loading.show { display:flex; }
+        .spinner { width:40px; height:40px; border:3px solid #334155; border-top-color:#38bdf8; border-radius:50%; animation:spin 0.7s linear infinite; }
+        @keyframes spin { to { transform:rotate(360deg); } }
+    </style>
+</head>
 <body>
-    <h2>TEST TOKO N-Dhonk</h2>
+    <div class="container">
+        <div class="topbar">
+            <div><span class="dot" id="dot"></span> <span id="statusText">...</span></div>
+            <div id="clock">--:--</div>
+            <div class="session pagi" id="sessionBadge">🌅 PAGI</div>
+        </div>
+        
+        <div class="header">
+            <div class="logo">🏪</div>
+            <div>
+                <h1>TOKO N-Dhonk</h1>
+                <p>Nasi Kuning · Lauk · Sembako</p>
+            </div>
+            <div style="margin-left:auto; display:flex; gap:8px;">
+                <button class="tab" onclick="openModal('reportModal')" style="padding:10px;">📊</button>
+                <button class="tab" onclick="openModal('productModal')" style="padding:10px;">📦</button>
+            </div>
+        </div>
+        
+        <div class="tabs">
+            <button class="tab active" onclick="filterCat('Semua',this)">📦 Semua</button>
+            <button class="tab" onclick="filterCat('Nasi Kuning',this)">🍚 Nasi Kuning</button>
+            <button class="tab" onclick="filterCat('Lauk',this)">🍗 Lauk</button>
+            <button class="tab" onclick="filterCat('Sembako',this)">🛒 Sembako</button>
+        </div>
+        
+        <div class="grid" id="productGrid">
+            <div class="empty"><div class="icon">📦</div><h3>Belum ada produk</h3><p>Tambahkan di menu Kelola Produk</p></div>
+        </div>
+        
+        <div class="cart">
+            <div class="cart-chips" id="cartChips"><div style="color:#64748b;font-size:12px;">🛒 Keranjang kosong</div></div>
+            <div class="cart-row"><span>Total</span><span class="cart-total" id="cartTotal">Rp 0</span></div>
+            <div class="cart-actions">
+                <button class="btn btn-clr" onclick="clearCart()">🗑️</button>
+                <button class="btn btn-pay" id="btnPay" onclick="openPayment()" disabled>💳 Bayar</button>
+            </div>
+        </div>
+    </div>
     
-    <button onclick="testConnection()">1. Test Koneksi</button><br><br>
-    <button onclick="testAddProduct()">2. Test Tambah Produk</button><br><br>
-    <button onclick="testGetProducts()">3. Test Ambil Produk</button><br><br>
+    <!-- Product Modal -->
+    <div class="modal" id="productModal">
+        <div class="modal-box">
+            <button class="modal-close" onclick="closeModal('productModal')">✕</button>
+            <h3>➕ Tambah Produk</h3>
+            <label>Nama</label>
+            <input type="text" id="pName" placeholder="Nama produk">
+            <label>Kategori</label>
+            <select id="pCat">
+                <option value="Nasi Kuning">Nasi Kuning</option>
+                <option value="Lauk">Lauk</option>
+                <option value="Sembako">Sembako</option>
+            </select>
+            <label>Harga (Rp)</label>
+            <input type="number" id="pPrice" placeholder="Harga">
+            <button class="btn btn-pay" onclick="addProduct()" style="width:100%; margin-top:8px;">Simpan</button>
+            
+            <hr style="border-color:#334155; margin:16px 0;">
+            
+            <h3>💰 Update Harga</h3>
+            <label>Produk</label>
+            <select id="updateSelect"></select>
+            <label>Harga Baru</label>
+            <input type="number" id="updatePrice" placeholder="Harga baru">
+            <button class="btn" style="background:#f97316; color:#fff; width:100%;" onclick="updateProductPrice()">Update</button>
+            
+            <hr style="border-color:#334155; margin:16px 0;">
+            
+            <h3>🗑️ Hapus Produk</h3>
+            <label>Produk</label>
+            <select id="deleteSelect"></select>
+            <button class="btn" style="background:#f87171; color:#fff; width:100%;" onclick="deleteProduct()">Hapus</button>
+        </div>
+    </div>
     
-    <pre id="result" style="background:#1e293b; color:#38bdf8; padding:16px; border-radius:8px;"></pre>
+    <!-- Payment Modal -->
+    <div class="modal" id="paymentModal">
+        <div class="modal-box">
+            <button class="modal-close" onclick="closeModal('paymentModal')">✕</button>
+            <h3>💳 Pembayaran</h3>
+            <div class="pay-opt">
+                <div class="active" onclick="setPayment('Tunai',this)">💵 Tunai</div>
+                <div onclick="setPayment('QRIS',this)">📱 QRIS</div>
+            </div>
+            <div class="cart-row" style="margin:16px 0;"><span>Total</span><span class="cart-total" id="payAmount">Rp 0</span></div>
+            <button class="btn btn-pay" onclick="processPayment()" style="width:100%;">Konfirmasi</button>
+        </div>
+    </div>
+    
+    <!-- Report Modal -->
+    <div class="modal" id="reportModal">
+        <div class="modal-box">
+            <button class="modal-close" onclick="closeModal('reportModal')">✕</button>
+            <h3>📊 Laporan</h3>
+            <label>Jenis</label>
+            <select id="reportType" onchange="switchReport()">
+                <option value="daily">Harian</option>
+                <option value="monthly">Bulanan</option>
+            </select>
+            <div id="dailyDate"><label>Tanggal</label><input type="date" id="rDate" onchange="loadReport()"></div>
+            <div id="monthlyDate" style="display:none;"><label>Bulan</label><input type="month" id="rMonth" onchange="loadReport()"></div>
+            <div id="reportContent"></div>
+        </div>
+    </div>
+    
+    <div id="toastContainer" style="position:fixed; top:16px; left:50%; transform:translateX(-50%); z-index:3000; width:90%; max-width:400px;"></div>
+    <div class="loading" id="loading"><div class="spinner"></div></div>
 
     <script>
+        // GANTI DENGAN URL DEPLOYMENT ANDA
         const API = 'https://script.google.com/macros/s/AKfycby0mpLoFPYZe5Yp_YMkrJAXSOhHPM1X-WA5Hgq5ciPCl1osy9WUs_LKu3k0mqt6EsLG/exec';
         
-        function log(msg) {
-            document.getElementById('result').textContent += msg + '\n';
+        let products = [], cart = [], filter = 'Semua', payment = 'Tunai';
+        
+        // Init
+        document.addEventListener('DOMContentLoaded', () => {
+            setDates();
+            updateClock();
+            setInterval(updateClock, 30000);
+            checkConnection();
+            loadProducts();
+        });
+        
+        function setDates() {
+            const now = new Date().toISOString().split('T')[0];
+            document.getElementById('rDate').value = now;
+            document.getElementById('rMonth').value = now.slice(0,7);
         }
         
-        async function testConnection() {
-            document.getElementById('result').textContent = '';
-            log('Testing connection...');
-            try {
-                const res = await fetch(API + '?action=checkConnection');
-                const data = await res.json();
-                log('Response: ' + JSON.stringify(data, null, 2));
-                if (data.connected) {
-                    log('✅ KONEKSI BERHASIL!');
-                } else {
-                    log('❌ KONEKSI GAGAL');
-                }
-            } catch(e) {
-                log('❌ ERROR: ' + e.message);
-                log('Pastikan:');
-                log('1. Apps Script sudah di-deploy sebagai Web App');
-                log('2. Akses diset ke "Anyone"');
-                log('3. URL sudah benar');
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('clock').textContent = 
+                now.getHours() + ':' + now.getMinutes().toString().padStart(2,'0');
+            const badge = document.getElementById('sessionBadge');
+            const h = now.getHours();
+            if (h >= 6 && h < 17) {
+                badge.textContent = '🌅 PAGI';
+                badge.className = 'session pagi';
+            } else {
+                badge.textContent = '🌙 MALAM';
+                badge.className = 'session malam';
             }
         }
         
-        async function testAddProduct() {
-            document.getElementById('result').textContent = '';
-            log('Testing add product...');
+        async function fetchAPI(action, data = null, params = '') {
             try {
-                const res = await fetch(API + '?action=addProduct', {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        name: 'Test Product ' + new Date().getSeconds(),
-                        category: 'Sembako',
-                        price: 5000
-                    })
+                let url = API + '?action=' + action + params;
+                let opts = { method: 'GET' };
+                if (data) {
+                    opts.method = 'POST';
+                    opts.body = JSON.stringify(data);
+                }
+                const res = await fetch(url, opts);
+                return await res.json();
+            } catch(e) {
+                console.error(e);
+                return { error: true, message: e.message };
+            }
+        }
+        
+        function checkConnection() {
+            document.getElementById('statusText').textContent = '...';
+            fetchAPI('checkConnection').then(r => {
+                const dot = document.getElementById('dot');
+                if (r.connected) {
+                    dot.classList.remove('off');
+                    document.getElementById('statusText').textContent = 'Online';
+                } else {
+                    dot.classList.add('off');
+                    document.getElementById('statusText').textContent = 'Offline';
+                    setTimeout(checkConnection, 3000);
+                }
+            });
+        }
+        
+        function loadProducts() {
+            showLoading();
+            fetchAPI('getProducts').then(data => {
+                hideLoading();
+                products = Array.isArray(data) ? data : [];
+                renderProducts();
+            });
+        }
+        
+        function renderProducts() {
+            const grid = document.getElementById('productGrid');
+            let filtered = filter === 'Semua' ? products : products.filter(p => p.category === filter);
+            
+            if (filtered.length === 0) {
+                grid.innerHTML = '<div class="empty"><div class="icon">📦</div><h3>Belum ada produk</h3></div>';
+                return;
+            }
+            
+            grid.innerHTML = filtered.map(p => `
+                <div class="card" onclick="addToCart('${p.id}','${p.name.replace(/'/g,"\\'")}',${p.price},'${p.category}')">
+                    <span class="emoji">${p.category==='Nasi Kuning'?'🍚':p.category==='Lauk'?'🍗':'🛒'}</span>
+                    <div class="name">${p.name}</div>
+                    <div class="price">Rp ${p.price.toLocaleString('id-ID')}</div>
+                </div>
+            `).join('');
+        }
+        
+        function filterCat(cat, el) {
+            filter = cat;
+            document.querySelectorAll('.tabs .tab').forEach(t => t.classList.remove('active'));
+            el.classList.add('active');
+            renderProducts();
+        }
+        
+        function addToCart(id, name, price, cat) {
+            const existing = cart.find(i => i.id === id);
+            if (existing) existing.qty++;
+            else cart.push({ id, name, price, category: cat, qty: 1 });
+            updateCart();
+            toast('✅ Ditambahkan');
+        }
+        
+        function removeFromCart(i) {
+            cart.splice(i, 1);
+            updateCart();
+        }
+        
+        function clearCart() {
+            cart = [];
+            updateCart();
+        }
+        
+        function updateCart() {
+            const chips = document.getElementById('cartChips');
+            const total = document.getElementById('cartTotal');
+            const btn = document.getElementById('btnPay');
+            
+            if (cart.length === 0) {
+                chips.innerHTML = '<div style="color:#64748b;font-size:12px;">🛒 Keranjang kosong</div>';
+                total.textContent = 'Rp 0';
+                btn.disabled = true;
+                return;
+            }
+            
+            chips.innerHTML = cart.map((item, i) => `
+                <div class="chip">${item.name} ×${item.qty} <span onclick="event.stopPropagation();removeFromCart(${i})">×</span></div>
+            `).join('');
+            
+            const sum = cart.reduce((s, i) => s + i.price * i.qty, 0);
+            total.textContent = 'Rp ' + sum.toLocaleString('id-ID');
+            btn.disabled = false;
+        }
+        
+        function openPayment() {
+            if (cart.length === 0) return;
+            document.getElementById('payAmount').textContent = 
+                'Rp ' + cart.reduce((s,i) => s + i.price * i.qty, 0).toLocaleString('id-ID');
+            openModal('paymentModal');
+        }
+        
+        function setPayment(m, el) {
+            payment = m;
+            document.querySelectorAll('.pay-opt div').forEach(d => d.classList.remove('active'));
+            el.classList.add('active');
+        }
+        
+        function processPayment() {
+            closeModal('paymentModal');
+            showLoading();
+            
+            const total = cart.reduce((s,i) => s + i.price * i.qty, 0);
+            
+            fetchAPI('saveTransaction', {
+                items: cart,
+                total: total,
+                payment: payment
+            }).then(r => {
+                hideLoading();
+                if (r.success) {
+                    cart = [];
+                    updateCart();
+                    toast('✅ Berhasil! ' + r.session);
+                } else {
+                    toast('❌ Gagal!', true);
+                }
+            });
+        }
+        
+        function addProduct() {
+            const name = document.getElementById('pName').value.trim();
+            const cat = document.getElementById('pCat').value;
+            const price = document.getElementById('pPrice').value;
+            
+            if (!name || !price) return toast('⚠️ Isi semua field!', true);
+            
+            showLoading();
+            fetchAPI('addProduct', { name, category: cat, price: Number(price) }).then(r => {
+                hideLoading();
+                if (r.success) {
+                    document.getElementById('pName').value = '';
+                    document.getElementById('pPrice').value = '';
+                    toast('✅ ' + r.message);
+                    loadProducts();
+                    populateSelects();
+                } else {
+                    toast('❌ Gagal!', true);
+                }
+            });
+        }
+        
+        function updateProductPrice() {
+            const id = document.getElementById('updateSelect').value;
+            const price = document.getElementById('updatePrice').value;
+            if (!id || !price) return toast('⚠️ Pilih produk dan isi harga!', true);
+            
+            showLoading();
+            fetchAPI('updatePrice', { id, price: Number(price) }).then(r => {
+                hideLoading();
+                if (r.success) {
+                    document.getElementById('updatePrice').value = '';
+                    toast('✅ Diupdate!');
+                    loadProducts();
+                }
+            });
+        }
+        
+        function deleteProduct() {
+            const id = document.getElementById('deleteSelect').value;
+            if (!id) return;
+            if (!confirm('Hapus produk ini?')) return;
+            
+            showLoading();
+            fetchAPI('deleteProduct', { id }).then(r => {
+                hideLoading();
+                if (r.success) {
+                    toast('✅ Dihapus!');
+                    loadProducts();
+                    populateSelects();
+                }
+            });
+        }
+        
+        function populateSelects() {
+            fetchAPI('getProducts').then(data => {
+                if (!Array.isArray(data)) return;
+                const opts = data.map(p => `<option value="${p.id}">${p.name} - Rp ${p.price.toLocaleString('id-ID')}</option>`).join('');
+                document.getElementById('updateSelect').innerHTML = opts;
+                document.getElementById('deleteSelect').innerHTML = opts;
+            });
+        }
+        
+        function switchReport() {
+            const type = document.getElementById('reportType').value;
+            document.getElementById('dailyDate').style.display = type === 'daily' ? 'block' : 'none';
+            document.getElementById('monthlyDate').style.display = type === 'monthly' ? 'block' : 'none';
+            loadReport();
+        }
+        
+        function loadReport() {
+            const type = document.getElementById('reportType').value;
+            showLoading();
+            
+            if (type === 'daily') {
+                const date = document.getElementById('rDate').value;
+                if (!date) { hideLoading(); return; }
+                fetchAPI('getDailyReport', null, '&date=' + date).then(r => {
+                    hideLoading();
+                    displayDaily(r);
                 });
-                const data = await res.json();
-                log('Response: ' + JSON.stringify(data, null, 2));
-                if (data.success) {
-                    log('✅ TAMBAH PRODUK BERHASIL!');
-                } else {
-                    log('❌ GAGAL: ' + (data.message || 'Unknown error'));
-                }
-            } catch(e) {
-                log('❌ ERROR: ' + e.message);
+            } else {
+                const mv = document.getElementById('rMonth').value;
+                if (!mv) { hideLoading(); return; }
+                const [y, m] = mv.split('-');
+                fetchAPI('getMonthlyReport', null, '&month=' + m + '&year=' + y).then(r => {
+                    hideLoading();
+                    displayMonthly(r);
+                });
             }
         }
         
-        async function testGetProducts() {
-            document.getElementById('result').textContent = '';
-            log('Testing get products...');
-            try {
-                const res = await fetch(API + '?action=getProducts');
-                const data = await res.json();
-                log('Jumlah produk: ' + (Array.isArray(data) ? data.length : 'error'));
-                log('Data: ' + JSON.stringify(data, null, 2));
-                if (Array.isArray(data)) {
-                    log('✅ AMBIL PRODUK BERHASIL!');
-                }
-            } catch(e) {
-                log('❌ ERROR: ' + e.message);
+        function displayDaily(r) {
+            const c = document.getElementById('reportContent');
+            if (!r || r.total === undefined) {
+                c.innerHTML = '<p style="color:#64748b;">Tidak ada data</p>';
+                return;
             }
+            
+            const pt = r.pagi.nk + r.pagi.lauk + r.pagi.sembako;
+            const mt = r.malam.nk + r.malam.lauk + r.malam.sembako;
+            
+            c.innerHTML = `
+                <div class="report-card">
+                    <h4>📅 ${r.date}</h4>
+                    <h4 style="color:#fbbf24;">🌅 Pagi (${r.pagi.trx} transaksi)</h4>
+                    <div class="report-row"><span>🍚 Nasi Kuning</span><span>Rp ${r.pagi.nk.toLocaleString('id-ID')}</span></div>
+                    <div class="report-row"><span>🍗 Lauk</span><span>Rp ${r.pagi.lauk.toLocaleString('id-ID')}</span></div>
+                    <div class="report-row"><span>🛒 Sembako</span><span>Rp ${r.pagi.sembako.toLocaleString('id-ID')}</span></div>
+                    <div class="report-total">Subtotal: Rp ${pt.toLocaleString('id-ID')}</div>
+                    
+                    <h4 style="color:#818cf8; margin-top:12px;">🌙 Malam (${r.malam.trx} transaksi)</h4>
+                    <div class="report-row"><span>🍚 Nasi Kuning</span><span>Rp ${r.malam.nk.toLocaleString('id-ID')}</span></div>
+                    <div class="report-row"><span>🍗 Lauk</span><span>Rp ${r.malam.lauk.toLocaleString('id-ID')}</span></div>
+                    <div class="report-row"><span>🛒 Sembako</span><span>Rp ${r.malam.sembako.toLocaleString('id-ID')}</span></div>
+                    <div class="report-total">Subtotal: Rp ${mt.toLocaleString('id-ID')}</div>
+                    
+                    <div class="report-total grand">💰 Total: Rp ${r.total.toLocaleString('id-ID')}</div>
+                </div>
+            `;
         }
+        
+        function displayMonthly(r) {
+            const c = document.getElementById('reportContent');
+            if (!r || r.total === undefined) {
+                c.innerHTML = '<p style="color:#64748b;">Tidak ada data</p>';
+                return;
+            }
+            
+            let days = '';
+            Object.keys(r.days).sort().forEach(d => {
+                days += `<div class="report-row"><span>📅 Tgl ${d}</span><span>Rp ${r.days[d].toLocaleString('id-ID')}</span></div>`;
+            });
+            
+            c.innerHTML = `
+                <div class="report-card">
+                    <h4>📆 ${r.month}/${r.year}</h4>
+                    <h4 style="color:#fbbf24;">🌅 Pagi</h4>
+                    <div class="report-row"><span>🍚 Nasi Kuning</span><span>Rp ${r.cat.nk.pagi.toLocaleString('id-ID')}</span></div>
+                    <div class="report-row"><span>🍗 Lauk</span><span>Rp ${r.cat.lauk.pagi.toLocaleString('id-ID')}</span></div>
+                    <div class="report-row"><span>🛒 Sembako</span><span>Rp ${r.cat.sembako.pagi.toLocaleString('id-ID')}</span></div>
+                    
+                    <h4 style="color:#818cf8; margin-top:12px;">🌙 Malam</h4>
+                    <div class="report-row"><span>🍚 Nasi Kuning</span><span>Rp ${r.cat.nk.malam.toLocaleString('id-ID')}</span></div>
+                    <div class="report-row"><span>🍗 Lauk</span><span>Rp ${r.cat.lauk.malam.toLocaleString('id-ID')}</span></div>
+                    <div class="report-row"><span>🛒 Sembako</span><span>Rp ${r.cat.sembako.malam.toLocaleString('id-ID')}</span></div>
+                    
+                    ${days ? '<h4 style="margin-top:12px;">📅 Per Hari</h4>' + days : ''}
+                    
+                    <div class="report-total grand">💰 Total: Rp ${r.total.toLocaleString('id-ID')}</div>
+                </div>
+            `;
+        }
+        
+        function openModal(id) {
+            document.getElementById(id).classList.add('show');
+            if (id === 'productModal') populateSelects();
+            if (id === 'reportModal') loadReport();
+        }
+        
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('show');
+        }
+        
+        function toast(msg, isErr = false) {
+            const container = document.getElementById('toastContainer');
+            const el = document.createElement('div');
+            el.className = 'toast' + (isErr ? ' err' : '');
+            el.textContent = msg;
+            container.appendChild(el);
+            setTimeout(() => {
+                el.style.opacity = '0';
+                el.style.transition = '0.3s';
+                setTimeout(() => el.remove(), 300);
+            }, 2000);
+        }
+        
+        function showLoading() { document.getElementById('loading').classList.add('show'); }
+        function hideLoading() { document.getElementById('loading').classList.remove('show'); }
+        
+        document.addEventListener('click', e => {
+            if (e.target.classList.contains('modal')) e.target.classList.remove('show');
+        });
     </script>
 </body>
 </html>
