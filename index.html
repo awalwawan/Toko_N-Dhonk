@@ -4,166 +4,150 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>TOKO N-Dhonk POS</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        :root {
+            --bg: #0F172A;
+            --card: #1E293B;
+            --card-hover: #334155;
+            --primary: #38BDF8;
+            --primary-glow: rgba(56,189,248,0.3);
+            --secondary: #A78BFA;
+            --accent: #FB923C;
+            --success: #34D399;
+            --danger: #F87171;
+            --warning: #FBBF24;
+            --text: #F1F5F9;
+            --text-muted: #94A3B8;
+            --border: #334155;
+            --gradient-1: linear-gradient(135deg, #0EA5E9, #8B5CF6);
+            --gradient-2: linear-gradient(135deg, #F97316, #EF4444);
+            --gradient-3: linear-gradient(135deg, #10B981, #06B6D4);
+            --shadow: 0 4px 6px -1px rgba(0,0,0,0.3);
+            --shadow-lg: 0 10px 25px -5px rgba(0,0,0,0.5);
+            --radius: 16px;
+            --radius-sm: 12px;
         }
 
-        :root {
-            --primary: #6C5CE7;
-            --primary-dark: #5A4BD1;
-            --secondary: #FF6B6B;
-            --accent: #FFD93D;
-            --success: #6BCB77;
-            --warning: #FFA500;
-            --info: #4ECDC4;
-            --dark: #2D3436;
-            --light: #F8F9FA;
-            --card-bg: #FFFFFF;
-            --gradient-1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            --gradient-2: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-            --gradient-3: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-            --gradient-morning: linear-gradient(135deg, #FFD93D 0%, #FF8C00 100%);
-            --gradient-evening: linear-gradient(135deg, #2C3E50 0%, #3498DB 100%);
-            --shadow-sm: 0 2px 8px rgba(0,0,0,0.08);
-            --shadow-md: 0 4px 16px rgba(0,0,0,0.12);
-            --shadow-lg: 0 8px 32px rgba(0,0,0,0.16);
-            --radius-sm: 12px;
-            --radius-md: 16px;
-            --radius-lg: 24px;
-        }
+        * { margin:0; padding:0; box-sizing:border-box; }
 
         body {
-            font-family: 'Inter', sans-serif;
-            background: linear-gradient(135deg, #E8EAF6 0%, #F3E5F5 50%, #E0F7FA 100%);
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: var(--bg);
+            color: var(--text);
             min-height: 100vh;
-            color: var(--dark);
             -webkit-tap-highlight-color: transparent;
+            background-image: 
+                radial-gradient(ellipse at top right, rgba(56,189,248,0.1) 0%, transparent 50%),
+                radial-gradient(ellipse at bottom left, rgba(168,139,250,0.1) 0%, transparent 50%);
         }
 
         .app-container {
             max-width: 480px;
             margin: 0 auto;
             min-height: 100vh;
-            background: rgba(255,255,255,0.6);
-            backdrop-filter: blur(20px);
             position: relative;
-            overflow-x: hidden;
         }
 
-        /* Status Bar */
-        .status-bar {
-            background: var(--dark);
-            color: white;
-            padding: 8px 16px;
+        /* Top Bar */
+        .top-bar {
+            background: rgba(30,41,59,0.8);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            padding: 10px 16px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-size: 12px;
-            font-weight: 500;
+            position: sticky;
+            top: 0;
+            z-index: 100;
         }
 
-        .status-indicator {
+        .connection-status {
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 8px;
+            font-size: 12px;
+            color: var(--text-muted);
         }
 
         .status-dot {
-            width: 8px;
-            height: 8px;
+            width: 8px; height: 8px;
             border-radius: 50%;
             background: var(--success);
+            box-shadow: 0 0 8px var(--success);
             animation: pulse 2s infinite;
         }
 
-        .status-dot.offline {
-            background: var(--secondary);
-        }
+        .status-dot.offline { background: var(--danger); box-shadow: 0 0 8px var(--danger); }
 
         @keyframes pulse {
             0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
+            50% { opacity: 0.4; }
+        }
+
+        .current-time {
+            font-weight: 700;
+            font-size: 14px;
+            color: var(--text);
         }
 
         .session-badge {
-            padding: 4px 12px;
-            border-radius: 12px;
+            padding: 6px 14px;
+            border-radius: 20px;
             font-weight: 700;
             font-size: 11px;
-            animation: glowBadge 3s infinite;
+            letter-spacing: 0.5px;
         }
 
-        .session-badge.morning {
-            background: var(--gradient-morning);
-            color: #333;
+        .session-badge.pagi {
+            background: linear-gradient(135deg, #FBBF24, #F97316);
+            color: #1a1a1a;
         }
 
-        .session-badge.evening {
-            background: var(--gradient-evening);
+        .session-badge.malam {
+            background: linear-gradient(135deg, #6366F1, #8B5CF6);
             color: white;
-        }
-
-        @keyframes glowBadge {
-            0%, 100% { box-shadow: 0 0 5px rgba(255,217,61,0.5); }
-            50% { box-shadow: 0 0 20px rgba(255,217,61,0.8); }
         }
 
         /* Header */
         .app-header {
-            background: var(--gradient-1);
-            padding: 16px;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            box-shadow: var(--shadow-lg);
-        }
-
-        .header-content {
+            padding: 20px 16px;
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 14px;
         }
 
-        .logo-container {
-            width: 48px;
-            height: 48px;
-            background: white;
-            border-radius: 16px;
+        .logo {
+            width: 56px; height: 56px;
+            background: var(--gradient-1);
+            border-radius: 18px;
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-            position: relative;
-            overflow: hidden;
-            animation: logoFloat 3s infinite;
+            font-size: 28px;
+            box-shadow: 0 0 30px var(--primary-glow);
+            animation: float 3s ease-in-out infinite;
         }
 
-        @keyframes logoFloat {
+        @keyframes float {
             0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-3px); }
-        }
-
-        .logo-svg {
-            width: 36px;
-            height: 36px;
+            50% { transform: translateY(-5px); }
         }
 
         .store-info h1 {
-            font-family: 'Poppins', sans-serif;
-            font-weight: 700;
-            font-size: 20px;
-            color: white;
-            letter-spacing: -0.5px;
+            font-size: 22px;
+            font-weight: 800;
+            background: var(--gradient-1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
 
         .store-info .tagline {
-            font-size: 10px;
-            color: rgba(255,255,255,0.8);
+            font-size: 11px;
+            color: var(--text-muted);
             font-weight: 500;
         }
 
@@ -174,201 +158,166 @@
         }
 
         .icon-btn {
-            width: 40px;
-            height: 40px;
-            border-radius: 12px;
-            border: none;
-            background: rgba(255,255,255,0.2);
-            color: white;
+            width: 42px; height: 42px;
+            border-radius: 14px;
+            border: 1px solid var(--border);
+            background: var(--card);
+            color: var(--text);
             font-size: 16px;
             cursor: pointer;
-            backdrop-filter: blur(10px);
-            transition: all 0.3s;
+            transition: all 0.2s;
             display: flex;
             align-items: center;
             justify-content: center;
-            position: relative;
         }
 
-        .icon-btn:active {
-            transform: scale(0.9);
-            background: rgba(255,255,255,0.3);
-        }
+        .icon-btn:active { background: var(--card-hover); transform: scale(0.95); }
 
-        .badge {
-            position: absolute;
-            top: -4px;
-            right: -4px;
-            background: var(--secondary);
-            color: white;
-            font-size: 10px;
-            padding: 2px 6px;
-            border-radius: 10px;
-            font-weight: 700;
-        }
-
-        /* Session Info */
-        .session-info {
-            padding: 12px 16px;
-            background: white;
-            margin: 8px 16px;
-            border-radius: var(--radius-md);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            box-shadow: var(--shadow-sm);
-            font-size: 13px;
-        }
-
-        .session-info i {
-            font-size: 20px;
-        }
-
-        .session-info.morning i {
-            color: #FF8C00;
-        }
-
-        .session-info.evening i {
-            color: #3498DB;
-        }
-
-        /* Category Tabs */
-        .category-tabs {
-            padding: 12px 16px;
+        /* Category Pills */
+        .category-pills {
+            padding: 8px 16px 16px;
             display: flex;
             gap: 8px;
             overflow-x: auto;
             scrollbar-width: none;
         }
 
-        .category-tabs::-webkit-scrollbar {
-            display: none;
-        }
+        .category-pills::-webkit-scrollbar { display: none; }
 
-        .category-tab {
-            padding: 10px 20px;
-            border-radius: 20px;
-            border: none;
-            background: white;
-            color: #666;
+        .cat-pill {
+            padding: 10px 18px;
+            border-radius: 24px;
+            border: 1px solid var(--border);
+            background: var(--card);
+            color: var(--text-muted);
             font-weight: 600;
             font-size: 13px;
             cursor: pointer;
             white-space: nowrap;
             transition: all 0.3s;
-            box-shadow: var(--shadow-sm);
         }
 
-        .category-tab.active {
+        .cat-pill.active {
             background: var(--gradient-1);
+            border-color: transparent;
             color: white;
-            box-shadow: 0 4px 12px rgba(108,92,231,0.4);
-            transform: translateY(-2px);
+            box-shadow: 0 4px 15px var(--primary-glow);
         }
 
         /* Product Grid */
-        .products-container {
+        .products-grid {
             padding: 0 12px;
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            grid-template-columns: 1fr 1fr;
             gap: 10px;
-            max-height: calc(100vh - 420px);
+            max-height: 55vh;
             overflow-y: auto;
-            padding-bottom: 200px;
+            padding-bottom: 180px;
         }
 
         .product-card {
-            background: white;
-            border-radius: var(--radius-md);
-            padding: 14px;
-            text-align: center;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 16px;
             cursor: pointer;
-            transition: all 0.3s;
-            box-shadow: var(--shadow-sm);
+            transition: all 0.2s;
             position: relative;
             overflow: hidden;
-            border: 2px solid transparent;
-        }
-
-        .product-card:hover {
-            border-color: var(--primary);
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-md);
         }
 
         .product-card:active {
-            transform: scale(0.95);
+            transform: scale(0.97);
+            border-color: var(--primary);
+            box-shadow: 0 0 20px var(--primary-glow);
         }
 
-        .product-card .product-icon {
+        .product-emoji {
             font-size: 36px;
             margin-bottom: 8px;
-            animation: bounce 2s infinite;
+            display: block;
         }
 
-        @keyframes bounce {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-5px); }
-        }
-
-        .product-card .product-name {
+        .product-name {
             font-weight: 600;
             font-size: 13px;
+            color: var(--text);
             margin-bottom: 4px;
-            color: var(--dark);
             line-height: 1.3;
         }
 
-        .product-card .product-price {
-            color: var(--primary);
+        .product-price {
             font-weight: 700;
-            font-size: 15px;
+            font-size: 16px;
+            color: var(--primary);
         }
 
-        .product-card .category-badge {
+        .product-cat {
             position: absolute;
-            top: 8px;
-            right: 8px;
-            font-size: 9px;
-            padding: 3px 8px;
-            border-radius: 8px;
-            background: var(--gradient-1);
-            color: white;
+            top: 10px;
+            right: 10px;
+            font-size: 10px;
+            padding: 4px 10px;
+            border-radius: 10px;
+            background: rgba(56,189,248,0.15);
+            color: var(--primary);
             font-weight: 600;
         }
 
-        .stock-info {
-            font-size: 10px;
-            color: #999;
-            margin-top: 4px;
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-muted);
         }
 
-        /* Cart Summary */
-        .cart-summary {
+        .empty-state i {
+            font-size: 60px;
+            display: block;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .empty-state h3 {
+            font-size: 18px;
+            margin-bottom: 8px;
+            color: var(--text);
+        }
+
+        .empty-state p {
+            font-size: 13px;
+            margin-bottom: 20px;
+        }
+
+        /* Cart Bottom Sheet */
+        .cart-sheet {
             position: fixed;
             bottom: 0;
             left: 50%;
             transform: translateX(-50%);
             max-width: 480px;
             width: 100%;
-            background: white;
+            background: var(--card);
+            border-top: 1px solid var(--border);
+            border-radius: 24px 24px 0 0;
             padding: 16px;
-            box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
-            border-radius: var(--radius-lg) var(--radius-lg) 0 0;
             z-index: 200;
+            box-shadow: var(--shadow-lg);
         }
 
-        .cart-items-mini {
+        .cart-chips {
             display: flex;
             gap: 8px;
             overflow-x: auto;
             margin-bottom: 12px;
-            padding-bottom: 8px;
+            padding-bottom: 4px;
+            min-height: 32px;
         }
 
-        .cart-item-chip {
-            background: #F0EEFF;
-            padding: 8px 14px;
+        .cart-chip {
+            background: rgba(56,189,248,0.1);
+            border: 1px solid rgba(56,189,248,0.2);
+            padding: 8px 12px;
             border-radius: 20px;
             font-size: 12px;
             font-weight: 600;
@@ -376,37 +325,40 @@
             display: flex;
             align-items: center;
             gap: 8px;
-            animation: slideIn 0.3s ease;
+            animation: popIn 0.3s ease;
         }
 
-        @keyframes slideIn {
-            from { opacity: 0; transform: translateX(-20px); }
-            to { opacity: 1; transform: translateX(0); }
+        @keyframes popIn {
+            from { transform: scale(0.8); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
         }
 
-        .cart-item-chip .remove-chip {
-            color: var(--secondary);
+        .cart-chip .remove {
+            color: var(--danger);
             cursor: pointer;
             font-weight: 700;
-            font-size: 16px;
-            padding: 2px;
+            font-size: 14px;
         }
 
-        .cart-total-row {
+        .cart-empty {
+            color: var(--text-muted);
+            font-size: 12px;
+            text-align: center;
+            width: 100%;
+        }
+
+        .cart-row {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 12px;
         }
 
-        .cart-total-label {
-            font-weight: 700;
-            font-size: 15px;
-        }
+        .cart-label { font-weight: 600; font-size: 14px; color: var(--text-muted); }
 
-        .cart-total-amount {
+        .cart-total {
             font-weight: 800;
-            font-size: 22px;
+            font-size: 26px;
             color: var(--primary);
         }
 
@@ -415,65 +367,67 @@
             gap: 8px;
         }
 
-        .checkout-btn, .clear-btn {
+        .btn-clear {
             padding: 14px;
-            border-radius: var(--radius-md);
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border);
+            background: transparent;
+            color: var(--danger);
+            font-size: 16px;
+            cursor: pointer;
+            min-width: 50px;
+            transition: all 0.2s;
+        }
+
+        .btn-checkout {
+            flex: 1;
+            padding: 14px;
+            border-radius: var(--radius-sm);
             border: none;
+            background: var(--gradient-1);
+            color: white;
             font-weight: 700;
             font-size: 15px;
             cursor: pointer;
-            transition: all 0.3s;
+            transition: all 0.2s;
+            box-shadow: 0 4px 15px var(--primary-glow);
         }
 
-        .checkout-btn {
-            flex: 1;
-            background: var(--gradient-1);
-            color: white;
-            box-shadow: 0 4px 16px rgba(108,92,231,0.4);
+        .btn-checkout:active, .btn-clear:active { transform: scale(0.97); }
+
+        .btn-checkout:disabled {
+            opacity: 0.5;
+            pointer-events: none;
         }
 
-        .clear-btn {
-            background: #FFE0E0;
-            color: var(--secondary);
-            min-width: 50px;
-        }
-
-        .checkout-btn:active, .clear-btn:active {
-            transform: scale(0.98);
-        }
-
-        /* Modal Popup */
+        /* Modals */
         .modal-overlay {
             display: none;
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.6);
+            inset: 0;
+            background: rgba(0,0,0,0.7);
             z-index: 1000;
             justify-content: center;
             align-items: center;
-            backdrop-filter: blur(5px);
+            backdrop-filter: blur(4px);
         }
 
-        .modal-overlay.show {
-            display: flex;
-        }
+        .modal-overlay.show { display: flex; }
 
-        .modal-content {
-            background: white;
-            border-radius: var(--radius-lg);
+        .modal {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
             padding: 24px;
-            width: 90%;
-            max-width: 400px;
-            max-height: 80vh;
+            width: 92%;
+            max-width: 420px;
+            max-height: 85vh;
             overflow-y: auto;
             animation: slideUp 0.3s ease;
         }
 
         @keyframes slideUp {
-            from { opacity: 0; transform: translateY(50px); }
+            from { opacity: 0; transform: translateY(40px); }
             to { opacity: 1; transform: translateY(0); }
         }
 
@@ -489,24 +443,21 @@
             font-weight: 700;
         }
 
-        .close-btn {
-            width: 36px;
-            height: 36px;
+        .modal-close {
+            width: 36px; height: 36px;
             border-radius: 50%;
-            border: none;
-            background: #F0F0F0;
+            border: 1px solid var(--border);
+            background: transparent;
+            color: var(--text);
             cursor: pointer;
-            font-size: 18px;
-            transition: all 0.3s;
+            font-size: 16px;
+            transition: all 0.2s;
         }
 
-        .close-btn:active {
-            background: #ddd;
-            transform: rotate(90deg);
-        }
+        .modal-close:active { background: var(--card-hover); }
 
         .form-group {
-            margin-bottom: 16px;
+            margin-bottom: 14px;
         }
 
         .form-group label {
@@ -514,25 +465,28 @@
             margin-bottom: 6px;
             font-weight: 600;
             font-size: 13px;
+            color: var(--text-muted);
         }
 
         .form-group input, .form-group select {
             width: 100%;
-            padding: 12px 16px;
+            padding: 12px 14px;
             border-radius: var(--radius-sm);
-            border: 2px solid #E0E0E0;
+            border: 1px solid var(--border);
+            background: var(--bg);
+            color: var(--text);
             font-size: 14px;
-            font-family: 'Inter', sans-serif;
-            transition: all 0.3s;
+            font-family: inherit;
+            transition: all 0.2s;
         }
 
         .form-group input:focus, .form-group select:focus {
             outline: none;
             border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(108,92,231,0.2);
+            box-shadow: 0 0 0 3px var(--primary-glow);
         }
 
-        .btn-primary, .btn-danger, .btn-warning {
+        .btn {
             width: 100%;
             padding: 14px;
             border-radius: var(--radius-sm);
@@ -540,152 +494,55 @@
             font-weight: 700;
             font-size: 14px;
             cursor: pointer;
-            transition: all 0.3s;
+            transition: all 0.2s;
             margin-bottom: 8px;
+            font-family: inherit;
         }
 
-        .btn-primary {
-            background: var(--gradient-1);
-            color: white;
+        .btn-primary { background: var(--gradient-1); color: white; box-shadow: 0 4px 15px var(--primary-glow); }
+        .btn-warning { background: var(--gradient-2); color: white; }
+        .btn-success { background: var(--gradient-3); color: white; }
+        .btn:active { transform: scale(0.97); }
+
+        .divider {
+            border: none;
+            border-top: 1px solid var(--border);
+            margin: 16px 0;
         }
 
-        .btn-danger {
-            background: var(--gradient-2);
-            color: white;
-        }
-
-        .btn-warning {
-            background: var(--gradient-morning);
-            color: #333;
-        }
-
-        .btn-primary:active, .btn-danger:active, .btn-warning:active {
-            transform: scale(0.98);
-        }
-
-        /* Payment Modal */
+        /* Payment Options */
         .payment-options {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 12px;
-            margin: 20px 0;
+            gap: 10px;
+            margin: 16px 0;
         }
 
-        .payment-option {
+        .pay-option {
             padding: 20px;
-            border-radius: var(--radius-md);
-            border: 3px solid #E0E0E0;
+            border-radius: var(--radius-sm);
+            border: 2px solid var(--border);
             text-align: center;
             cursor: pointer;
-            transition: all 0.3s;
-            background: white;
+            transition: all 0.2s;
             font-weight: 600;
+            background: var(--bg);
         }
 
-        .payment-option i {
-            font-size: 32px;
-            display: block;
-            margin-bottom: 8px;
-        }
+        .pay-option i { font-size: 28px; display: block; margin-bottom: 8px; }
+        .pay-option.active { border-color: var(--primary); background: rgba(56,189,248,0.1); }
 
-        .payment-option.active {
-            border-color: var(--primary);
-            background: #F0EEFF;
-        }
-
-        /* Success Popup */
-        .toast-popup {
-            position: fixed;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: white;
-            padding: 16px 24px;
-            border-radius: var(--radius-md);
-            box-shadow: var(--shadow-lg);
-            z-index: 2000;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            animation: slideDown 0.3s ease;
-            min-width: 250px;
-        }
-
-        @keyframes slideDown {
-            from { opacity: 0; transform: translateX(-50%) translateY(-30px); }
-            to { opacity: 1; transform: translateX(-50%) translateY(0); }
-        }
-
-        .toast-icon {
-            font-size: 28px;
-        }
-
-        .toast-message {
-            font-size: 14px;
-            font-weight: 500;
-            white-space: pre-line;
-        }
-
-        .toast-success { border-left: 4px solid var(--success); }
-        .toast-error { border-left: 4px solid var(--secondary); }
-        .toast-info { border-left: 4px solid var(--info); }
-
-        /* Loading Screen */
-        .loading-screen {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(255,255,255,0.9);
-            z-index: 3000;
-            justify-content: center;
-            align-items: center;
-            flex-direction: column;
-            gap: 20px;
-        }
-
-        .loading-screen.show {
-            display: flex;
-        }
-
-        .spinner {
-            width: 50px;
-            height: 50px;
-            border: 4px solid #E0E0E0;
-            border-top-color: var(--primary);
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        .loading-text {
-            font-weight: 600;
-            color: var(--primary);
-            animation: fade 1.5s infinite;
-        }
-
-        @keyframes fade {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-
-        /* Report Styles */
+        /* Report Cards */
         .report-card {
-            background: white;
-            border-radius: var(--radius-md);
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
             padding: 16px;
             margin-bottom: 12px;
-            box-shadow: var(--shadow-sm);
         }
 
-        .report-card h3 {
-            font-size: 16px;
-            font-weight: 700;
+        .report-card h4 {
+            font-size: 14px;
             margin-bottom: 8px;
             display: flex;
             align-items: center;
@@ -695,123 +552,155 @@
         .report-row {
             display: flex;
             justify-content: space-between;
-            padding: 8px 0;
+            padding: 6px 0;
             font-size: 13px;
-            border-bottom: 1px solid #F0F0F0;
+            border-bottom: 1px solid rgba(51,65,85,0.5);
+            color: var(--text-muted);
         }
 
         .report-total {
             font-weight: 700;
-            color: var(--primary);
-            font-size: 18px;
-            border-top: 2px solid #E0E0E0;
+            color: var(--text);
+            font-size: 16px;
             margin-top: 8px;
-            padding-top: 12px;
+            padding-top: 8px;
+            border-top: 2px solid var(--border);
         }
 
-        .session-tag {
-            display: inline-block;
-            padding: 4px 10px;
-            border-radius: 10px;
-            font-size: 11px;
-            font-weight: 600;
-            margin-left: 8px;
+        .grand-total {
+            font-size: 20px;
+            color: var(--primary);
+            font-weight: 800;
         }
 
-        .session-tag.morning {
-            background: #FFF3CD;
-            color: #FF8C00;
+        .badge-pagi { color: #FBBF24; }
+        .badge-malam { color: #818CF8; }
+
+        /* Toast */
+        .toast-container {
+            position: fixed;
+            top: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 3000;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            width: 90%;
+            max-width: 400px;
         }
 
-        .session-tag.evening {
-            background: #D1ECF1;
-            color: #0C5460;
+        .toast {
+            background: var(--card);
+            border: 1px solid var(--border);
+            padding: 14px 18px;
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 500;
+            font-size: 13px;
+            animation: slideIn 0.3s ease;
+            box-shadow: var(--shadow-lg);
         }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .toast.success { border-left: 3px solid var(--success); }
+        .toast.error { border-left: 3px solid var(--danger); }
+        .toast.info { border-left: 3px solid var(--primary); }
+
+        /* Loading */
+        .loading-screen {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(15,23,42,0.9);
+            z-index: 4000;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .loading-screen.show { display: flex; }
+
+        .spinner {
+            width: 44px; height: 44px;
+            border: 3px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
     <div class="app-container">
-        <!-- Status Bar -->
-        <div class="status-bar">
-            <div class="status-indicator">
+        <!-- Top Bar -->
+        <div class="top-bar">
+            <div class="connection-status">
                 <div class="status-dot" id="statusDot"></div>
-                <span id="statusText">Terhubung</span>
+                <span id="statusText">Menghubungkan...</span>
             </div>
-            <div>
-                <span id="currentTime">--:--</span>
-            </div>
-            <div class="session-badge morning" id="sessionBadge">
-                🌅 PAGI
-            </div>
+            <div class="current-time" id="currentTime">--:--</div>
+            <div class="session-badge pagi" id="sessionBadge">🌅 PAGI</div>
         </div>
 
         <!-- Header -->
         <div class="app-header">
-            <div class="header-content">
-                <div class="logo-container">
-                    <svg class="logo-svg" viewBox="0 0 100 100">
-                        <defs>
-                            <linearGradient id="logoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                                <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
-                                <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
-                            </linearGradient>
-                        </defs>
-                        <circle cx="50" cy="35" r="20" fill="url(#logoGrad)" opacity="0.8"/>
-                        <path d="M30 55 Q50 35 70 55 L65 75 L35 75 Z" fill="url(#logoGrad)"/>
-                        <circle cx="38" cy="65" r="5" fill="#FFD93D"/>
-                        <circle cx="62" cy="65" r="5" fill="#FFD93D"/>
-                        <path d="M42 72 Q50 80 58 72" stroke="#FFD93D" stroke-width="3" fill="none"/>
-                    </svg>
-                </div>
-                <div class="store-info">
-                    <h1>TOKO N-Dhonk</h1>
-                    <p class="tagline">Nasi Kuning • Lauk • Sembako</p>
-                </div>
-                <div class="header-actions">
-                    <button class="icon-btn" onclick="showModal('reportModal')" title="Laporan">
-                        <i class="fas fa-chart-bar"></i>
-                    </button>
-                    <button class="icon-btn" onclick="showModal('productModal')" title="Kelola Produk">
-                        <i class="fas fa-cog"></i>
-                    </button>
-                </div>
+            <div class="logo">🏪</div>
+            <div class="store-info">
+                <h1>TOKO N-Dhonk</h1>
+                <p class="tagline">Nasi Kuning · Lauk · Sembako</p>
+            </div>
+            <div class="header-actions">
+                <button class="icon-btn" onclick="openModal('reportModal')" title="Laporan">
+                    <i class="fas fa-chart-pie"></i>
+                </button>
+                <button class="icon-btn" onclick="openModal('productModal')" title="Kelola Produk">
+                    <i class="fas fa-box-open"></i>
+                </button>
             </div>
         </div>
 
-        <!-- Session Info -->
-        <div class="session-info morning" id="sessionInfo">
-            <i class="fas fa-sun"></i>
-            <span id="sessionInfoText">Sesi Penjualan Pagi (06:00 - 16:59)</span>
+        <!-- Category Pills -->
+        <div class="category-pills">
+            <button class="cat-pill active" onclick="filterCategory('Semua', this)">📦 Semua</button>
+            <button class="cat-pill" onclick="filterCategory('Nasi Kuning', this)">🍚 Nasi Kuning</button>
+            <button class="cat-pill" onclick="filterCategory('Lauk', this)">🍗 Lauk</button>
+            <button class="cat-pill" onclick="filterCategory('Sembako', this)">🛒 Sembako</button>
         </div>
 
-        <!-- Category Tabs -->
-        <div class="category-tabs">
-            <button class="category-tab active" onclick="setCategory('Semua', this)">📦 Semua</button>
-            <button class="category-tab" onclick="setCategory('Nasi Kuning', this)">🍚 Nasi Kuning</button>
-            <button class="category-tab" onclick="setCategory('Lauk', this)">🍗 Lauk</button>
-            <button class="category-tab" onclick="setCategory('Sembako', this)">🛒 Sembako</button>
-        </div>
-
-        <!-- Products Grid -->
-        <div class="products-container" id="productsContainer">
-            <!-- Products rendered here -->
-        </div>
-
-        <!-- Cart Summary -->
-        <div class="cart-summary" id="cartSummary">
-            <div class="cart-items-mini" id="cartItemsMini">
-                <div style="color:#999; font-size:12px;">Keranjang kosong</div>
+        <!-- Products -->
+        <div class="products-grid" id="productsGrid">
+            <div class="empty-state" style="grid-column: 1 / -1;">
+                <i class="fas fa-box-open"></i>
+                <h3>Belum Ada Produk</h3>
+                <p>Tambahkan produk melalui menu Kelola Produk</p>
+                <button class="btn btn-primary" style="width:auto; padding:12px 24px;" onclick="openModal('productModal')">
+                    <i class="fas fa-plus"></i> Tambah Produk
+                </button>
             </div>
-            <div class="cart-total-row">
-                <span class="cart-total-label">Total</span>
-                <span class="cart-total-amount" id="cartTotal">Rp 0</span>
+        </div>
+
+        <!-- Cart -->
+        <div class="cart-sheet" id="cartSheet">
+            <div class="cart-chips" id="cartChips">
+                <div class="cart-empty">🛒 Keranjang kosong</div>
+            </div>
+            <div class="cart-row">
+                <span class="cart-label">Total</span>
+                <span class="cart-total" id="cartTotal">Rp 0</span>
             </div>
             <div class="cart-actions">
-                <button class="clear-btn" onclick="clearCart()" title="Kosongkan">
-                    <i class="fas fa-trash"></i>
-                </button>
-                <button class="checkout-btn" onclick="checkout()">
-                    <i class="fas fa-shopping-cart"></i> Bayar
+                <button class="btn-clear" onclick="clearCart()"><i class="fas fa-trash-alt"></i></button>
+                <button class="btn-checkout" id="btnCheckout" onclick="openPayment()" disabled>
+                    <i class="fas fa-shopping-bag"></i> Bayar
                 </button>
             </div>
         </div>
@@ -819,735 +708,518 @@
 
     <!-- Payment Modal -->
     <div class="modal-overlay" id="paymentModal">
-        <div class="modal-content">
+        <div class="modal">
             <div class="modal-header">
-                <h2 class="modal-title">💳 Metode Pembayaran</h2>
-                <button class="close-btn" onclick="closeModal('paymentModal')">✕</button>
+                <h3 class="modal-title">💳 Pembayaran</h3>
+                <button class="modal-close" onclick="closeModal('paymentModal')">✕</button>
             </div>
             <div class="payment-options">
-                <div class="payment-option active" onclick="selectPayment('Tunai', this)">
-                    <i class="fas fa-money-bill-wave"></i>
-                    Tunai
+                <div class="pay-option active" onclick="selectPayment('Tunai', this)">
+                    <i class="fas fa-money-bill-wave"></i> Tunai
                 </div>
-                <div class="payment-option" onclick="selectPayment('QRIS', this)">
-                    <i class="fas fa-qrcode"></i>
-                    QRIS
+                <div class="pay-option" onclick="selectPayment('QRIS', this)">
+                    <i class="fas fa-qrcode"></i> QRIS
                 </div>
             </div>
-            <div class="cart-total-row" style="margin:20px 0;">
-                <span class="cart-total-label">Total Pembayaran</span>
-                <span class="cart-total-amount" id="paymentTotal">Rp 0</span>
+            <div class="cart-row" style="margin:16px 0;">
+                <span class="cart-label">Total Bayar</span>
+                <span class="cart-total" id="paymentAmount">Rp 0</span>
             </div>
-            <button class="btn-primary" onclick="processPayment()">
+            <button class="btn btn-primary" onclick="processPayment()">
                 <i class="fas fa-check-circle"></i> Konfirmasi Pembayaran
             </button>
         </div>
     </div>
 
-    <!-- Report Modal -->
-    <div class="modal-overlay" id="reportModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 class="modal-title">📊 Laporan Penjualan</h2>
-                <button class="close-btn" onclick="closeModal('reportModal')">✕</button>
-            </div>
-            <div class="form-group">
-                <label>Jenis Laporan</label>
-                <select id="reportType" onchange="loadReport()">
-                    <option value="daily">📅 Laporan Harian</option>
-                    <option value="monthly">📆 Laporan Bulanan</option>
-                </select>
-            </div>
-            <div class="form-group" id="dateInput">
-                <label>Pilih Tanggal</label>
-                <input type="date" id="reportDate" onchange="loadReport()">
-            </div>
-            <div class="form-group" id="monthInput" style="display:none;">
-                <label>Pilih Bulan</label>
-                <input type="month" id="reportMonth" onchange="loadReport()">
-            </div>
-            <div id="reportContent"></div>
-        </div>
-    </div>
-
-    <!-- Product Management Modal -->
+    <!-- Product Modal -->
     <div class="modal-overlay" id="productModal">
-        <div class="modal-content">
+        <div class="modal">
             <div class="modal-header">
-                <h2 class="modal-title">🔧 Kelola Produk</h2>
-                <button class="close-btn" onclick="closeModal('productModal')">✕</button>
+                <h3 class="modal-title">📦 Kelola Produk</h3>
+                <button class="modal-close" onclick="closeModal('productModal')">✕</button>
             </div>
-            <h4 style="margin-bottom:12px; color:var(--primary);">➕ Tambah Produk Baru</h4>
+            <h4 style="color:var(--primary); margin-bottom:12px;">➕ Tambah Produk Baru</h4>
             <div class="form-group">
                 <label>Nama Produk</label>
-                <input type="text" id="newProductName" placeholder="Masukkan nama produk">
+                <input type="text" id="prodName" placeholder="Contoh: Nasi Kuning Spesial">
             </div>
             <div class="form-group">
                 <label>Kategori</label>
-                <select id="newProductCategory">
+                <select id="prodCategory">
                     <option value="Nasi Kuning">Nasi Kuning</option>
                     <option value="Lauk">Lauk</option>
                     <option value="Sembako">Sembako</option>
                 </select>
             </div>
             <div class="form-group">
-                <label>Harga</label>
-                <input type="number" id="newProductPrice" placeholder="Masukkan harga">
+                <label>Harga (Rp)</label>
+                <input type="number" id="prodPrice" placeholder="Contoh: 15000">
             </div>
-            <button class="btn-primary" onclick="addProduct()">
+            <button class="btn btn-primary" onclick="addProduct()">
                 <i class="fas fa-plus-circle"></i> Tambah Produk
             </button>
-            
-            <hr style="margin: 20px 0; border-color: #E0E0E0;">
-            
-            <h4 style="margin-bottom:12px; color:var(--secondary);">💰 Update Harga Produk</h4>
+
+            <hr class="divider">
+
+            <h4 style="color:var(--warning); margin-bottom:12px;">💰 Ubah Harga</h4>
             <div class="form-group">
                 <label>Pilih Produk</label>
-                <select id="updateProductSelect"></select>
+                <select id="updateProduct"></select>
             </div>
             <div class="form-group">
-                <label>Harga Baru</label>
-                <input type="number" id="updateProductPrice" placeholder="Masukkan harga baru">
+                <label>Harga Baru (Rp)</label>
+                <input type="number" id="newPrice" placeholder="Masukkan harga baru">
             </div>
-            <button class="btn-warning" onclick="updatePrice()">
-                <i class="fas fa-edit"></i> Update Harga
+            <button class="btn btn-warning" onclick="updatePrice()">
+                <i class="fas fa-tag"></i> Update Harga
             </button>
-            
-            <hr style="margin: 20px 0; border-color: #E0E0E0;">
-            
-            <h4 style="margin-bottom:12px; color:var(--info);">📦 Update Stok Produk</h4>
+
+            <hr class="divider">
+
+            <h4 style="color:var(--danger); margin-bottom:12px;">🗑️ Nonaktifkan Produk</h4>
             <div class="form-group">
                 <label>Pilih Produk</label>
-                <select id="updateStockSelect"></select>
+                <select id="deleteProduct"></select>
             </div>
-            <div class="form-group">
-                <label>Jumlah</label>
-                <input type="number" id="updateStockQuantity" placeholder="Masukkan jumlah">
-            </div>
-            <div style="display:flex; gap:8px;">
-                <button class="btn-primary" onclick="updateStock(true)" style="flex:1;">
-                    <i class="fas fa-plus"></i> Tambah Stok
-                </button>
-                <button class="btn-danger" onclick="updateStock(false)" style="flex:1;">
-                    <i class="fas fa-minus"></i> Kurangi Stok
-                </button>
-            </div>
+            <button class="btn" style="background:var(--danger); color:white;" onclick="removeProduct()">
+                <i class="fas fa-trash-alt"></i> Nonaktifkan
+            </button>
         </div>
     </div>
 
-    <!-- Loading Screen -->
-    <div class="loading-screen" id="loadingScreen">
-        <div class="spinner"></div>
-        <div class="loading-text">Memproses...</div>
+    <!-- Report Modal -->
+    <div class="modal-overlay" id="reportModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">📊 Laporan</h3>
+                <button class="modal-close" onclick="closeModal('reportModal')">✕</button>
+            </div>
+            <div class="form-group">
+                <label>Jenis Laporan</label>
+                <select id="reportType" onchange="switchReportType()">
+                    <option value="daily">📅 Harian</option>
+                    <option value="monthly">📆 Bulanan</option>
+                </select>
+            </div>
+            <div class="form-group" id="dailyDateGroup">
+                <label>Tanggal</label>
+                <input type="date" id="reportDate" onchange="loadReport()">
+            </div>
+            <div class="form-group" id="monthlyDateGroup" style="display:none;">
+                <label>Bulan</label>
+                <input type="month" id="reportMonth" onchange="loadReport()">
+            </div>
+            <div id="reportContent"></div>
+        </div>
     </div>
 
     <!-- Toast Container -->
-    <div id="toastContainer"></div>
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Loading -->
+    <div class="loading-screen" id="loadingScreen">
+        <div class="spinner"></div>
+        <span style="color:var(--text-muted);">Memproses...</span>
+    </div>
 
     <script>
-        // Google Apps Script URL - GANTI DENGAN URL DEPLOYMENT ANDA
-        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxJUf1oGo_4Nkgr2EJdbmKVRuYtyYHreT94XWc9cBmJlTHxyL0DcWZmETwqcEBWZTgZ/exec';
+        // ⚠️ GANTI DENGAN URL DEPLOYMENT ANDA!
+        const SCRIPT_URL = 'https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec';
         
-        // State
-        let currentCategory = 'Semua';
+        let products = [];
         let cart = [];
-        let allProducts = [];
-        let selectedPayment = 'Tunai';
-        let currentSession = 'Pagi';
-        let sessionStartTime = '06:00';
-        let sessionEndTime = '16:59';
+        let currentFilter = 'Semua';
+        let paymentMethod = 'Tunai';
 
-        // Initialize
-        document.addEventListener('DOMContentLoaded', function() {
-            initializeApp();
+        // Init
+        document.addEventListener('DOMContentLoaded', () => {
+            setDefaultDates();
             updateClock();
-            setInterval(updateClock, 30000); // Update setiap 30 detik
-            setInterval(checkSession, 60000); // Cek sesi setiap menit
-        });
-
-        function initializeApp() {
-            showLoading();
+            setInterval(updateClock, 30000);
             checkConnection();
             loadProducts();
-            setDefaultDate();
-            updateSessionDisplay();
+        });
+
+        function setDefaultDates() {
+            const now = new Date();
+            document.getElementById('reportDate').value = now.toISOString().split('T')[0];
+            document.getElementById('reportMonth').value = now.toISOString().slice(0,7);
         }
 
-        // Connection Check
-        function checkConnection() {
-            fetch(SCRIPT_URL + '?action=checkConnection')
-                .then(response => response.json())
-                .then(data => {
-                    if (data.connected) {
-                        document.getElementById('statusDot').classList.remove('offline');
-                        document.getElementById('statusText').textContent = 'Terhubung';
-                        showToast('✅ Terhubung ke server!', 'success');
-                    }
-                })
-                .catch(error => {
-                    document.getElementById('statusDot').classList.add('offline');
-                    document.getElementById('statusText').textContent = 'Offline';
-                    showToast('⚠️ Gagal terhubung ke server!', 'error');
-                });
-        }
-
-        // Clock and Session
         function updateClock() {
             const now = new Date();
-            const hours = now.getHours();
-            const minutes = now.getMinutes();
-            const timeString = hours.toString().padStart(2, '0') + ':' + minutes.toString().padStart(2, '0');
-            document.getElementById('currentTime').textContent = timeString;
+            const h = now.getHours();
+            const m = now.getMinutes().toString().padStart(2,'0');
+            document.getElementById('currentTime').textContent = `${h}:${m}`;
             
-            checkSession();
-        }
-
-        function checkSession() {
-            const now = new Date();
-            const hours = now.getHours();
-            
-            if (hours >= 6 && hours < 17) {
-                if (currentSession !== 'Pagi') {
-                    currentSession = 'Pagi';
-                    sessionStartTime = '06:00';
-                    sessionEndTime = '16:59';
-                    updateSessionDisplay();
-                }
-            } else {
-                if (currentSession !== 'Malam') {
-                    currentSession = 'Malam';
-                    sessionStartTime = '17:00';
-                    sessionEndTime = '05:59';
-                    updateSessionDisplay();
-                }
-            }
-        }
-
-        function updateSessionDisplay() {
             const badge = document.getElementById('sessionBadge');
-            const info = document.getElementById('sessionInfo');
-            const infoText = document.getElementById('sessionInfoText');
-            
-            if (currentSession === 'Pagi') {
-                badge.innerHTML = '🌅 PAGI';
-                badge.className = 'session-badge morning';
-                info.className = 'session-info morning';
-                info.innerHTML = '<i class="fas fa-sun"></i><span>Sesi Penjualan Pagi (06:00 - 16:59)</span>';
+            if (h >= 6 && h < 17) {
+                badge.textContent = '🌅 PAGI';
+                badge.className = 'session-badge pagi';
             } else {
-                badge.innerHTML = '🌙 MALAM';
-                badge.className = 'session-badge evening';
-                info.className = 'session-info evening';
-                info.innerHTML = '<i class="fas fa-moon"></i><span>Sesi Penjualan Malam (17:00 - 05:59)</span>';
+                badge.textContent = '🌙 MALAM';
+                badge.className = 'session-badge malam';
             }
         }
 
-        function setDefaultDate() {
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('reportDate').value = today;
-            document.getElementById('reportMonth').value = today.substring(0, 7);
+        // API Calls
+        async function callAPI(action, data = null) {
+            try {
+                let url = `${SCRIPT_URL}?action=${action}`;
+                let options = { method: 'GET' };
+                
+                if (data) {
+                    options.method = 'POST';
+                    options.body = JSON.stringify(data);
+                    options.headers = { 'Content-Type': 'application/json' };
+                }
+                
+                const response = await fetch(url, options);
+                const result = await response.json();
+                return result;
+            } catch (error) {
+                return { success: false, message: 'Gagal terhubung ke server' };
+            }
         }
 
-        // Category Management
-        function setCategory(category, btn) {
-            currentCategory = category;
-            document.querySelectorAll('.category-tab').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            renderProducts();
-        }
-
-        // Load Products
-        function loadProducts() {
-            fetch(SCRIPT_URL + '?action=getAllProducts')
-                .then(response => response.json())
-                .then(products => {
-                    allProducts = products;
-                    renderProducts();
-                    hideLoading();
-                })
-                .catch(error => {
-                    showToast('❌ Gagal memuat produk!', 'error');
-                    hideLoading();
-                });
-        }
-
-        // Render Products
-        function renderProducts() {
-            const container = document.getElementById('productsContainer');
-            let filteredProducts = allProducts;
+        function checkConnection() {
+            const dot = document.getElementById('statusDot');
+            const text = document.getElementById('statusText');
             
-            if (currentCategory !== 'Semua') {
-                filteredProducts = allProducts.filter(p => p.category === currentCategory);
+            callAPI('checkConnection').then(res => {
+                if (res.connected) {
+                    dot.classList.remove('offline');
+                    text.textContent = 'Online';
+                } else {
+                    dot.classList.add('offline');
+                    text.textContent = 'Offline';
+                }
+            });
+        }
+
+        function loadProducts() {
+            showLoading();
+            callAPI('getAllProducts').then(data => {
+                hideLoading();
+                if (Array.isArray(data)) {
+                    products = data;
+                } else {
+                    products = [];
+                }
+                renderProducts();
+            });
+        }
+
+        function renderProducts() {
+            const grid = document.getElementById('productsGrid');
+            let filtered = currentFilter === 'Semua' ? products : products.filter(p => p.category === currentFilter);
+            
+            if (filtered.length === 0) {
+                grid.innerHTML = `
+                    <div class="empty-state" style="grid-column: 1 / -1;">
+                        <i class="fas fa-box-open"></i>
+                        <h3>Belum Ada Produk</h3>
+                        <p>Tambahkan produk melalui menu Kelola Produk</p>
+                    </div>
+                `;
+                return;
             }
 
-            const icons = {
-                'Nasi Kuning': '🍚',
-                'Lauk': '🍗',
-                'Sembako': '🛒'
-            };
-
-            container.innerHTML = filteredProducts.map(p => `
+            const emojis = { 'Nasi Kuning': '🍚', 'Lauk': '🍗', 'Sembako': '🛒' };
+            
+            grid.innerHTML = filtered.map(p => `
                 <div class="product-card" onclick="addToCart('${p.id}', '${p.name}', ${p.price}, '${p.category}')">
-                    <div class="category-badge">${p.category}</div>
-                    <div class="product-icon">${icons[p.category] || '📦'}</div>
+                    <span class="product-cat">${p.category}</span>
+                    <span class="product-emoji">${emojis[p.category] || '📦'}</span>
                     <div class="product-name">${p.name}</div>
                     <div class="product-price">Rp ${p.price.toLocaleString('id-ID')}</div>
-                    <div class="stock-info">Stok: ${p.stock}</div>
                 </div>
             `).join('');
         }
 
-        // Cart Management
+        function filterCategory(cat, el) {
+            currentFilter = cat;
+            document.querySelectorAll('.cat-pill').forEach(b => b.classList.remove('active'));
+            el.classList.add('active');
+            renderProducts();
+        }
+
+        // Cart
         function addToCart(id, name, price, category) {
-            const product = allProducts.find(p => p.id === id);
-            if (product && product.stock <= 0) {
-                showToast('❌ Stok habis!', 'error');
-                return;
-            }
-            
-            const existingItem = cart.find(item => item.id === id);
-            if (existingItem) {
-                if (product && existingItem.quantity >= product.stock) {
-                    showToast('⚠️ Stok tidak mencukupi!', 'error');
-                    return;
-                }
-                existingItem.quantity++;
+            const existing = cart.find(i => i.id === id);
+            if (existing) {
+                existing.qty++;
             } else {
-                cart.push({ id, name, price, category, quantity: 1 });
+                cart.push({ id, name, price, category, qty: 1 });
             }
-            updateCartDisplay();
-            showToast(`✅ ${name} ditambahkan!`, 'success');
-            
-            // Animasi feedback
-            event.target.closest('.product-card').style.transform = 'scale(0.95)';
-            setTimeout(() => {
-                event.target.closest('.product-card').style.transform = 'scale(1)';
-            }, 100);
+            updateCart();
+            showToast(`✅ ${name} ditambahkan`, 'success');
         }
 
         function removeFromCart(index) {
-            const item = cart[index];
             cart.splice(index, 1);
-            updateCartDisplay();
-            showToast(`❌ ${item.name} dihapus`, 'info');
+            updateCart();
         }
 
         function clearCart() {
-            if (cart.length === 0) return;
             cart = [];
-            updateCartDisplay();
+            updateCart();
             showToast('🗑️ Keranjang dikosongkan', 'info');
         }
 
-        function updateCartDisplay() {
-            const cartItemsMini = document.getElementById('cartItemsMini');
-            const cartTotal = document.getElementById('cartTotal');
-            
-            if (cart.length === 0) {
-                cartItemsMini.innerHTML = '<div style="color:#999; font-size:12px;">Keranjang kosong</div>';
-            } else {
-                cartItemsMini.innerHTML = cart.map((item, index) => `
-                    <div class="cart-item-chip">
-                        ${item.name} x${item.quantity}
-                        <span class="remove-chip" onclick="event.stopPropagation(); removeFromCart(${index})">×</span>
-                    </div>
-                `).join('');
-            }
+        function updateCart() {
+            const chips = document.getElementById('cartChips');
+            const total = document.getElementById('cartTotal');
+            const btn = document.getElementById('btnCheckout');
 
-            const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-            cartTotal.textContent = 'Rp ' + total.toLocaleString('id-ID');
-        }
-
-        // Checkout Process
-        function checkout() {
             if (cart.length === 0) {
-                showToast('⚠️ Keranjang masih kosong!', 'error');
+                chips.innerHTML = '<div class="cart-empty">🛒 Keranjang kosong</div>';
+                total.textContent = 'Rp 0';
+                btn.disabled = true;
                 return;
             }
-            
-            const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-            document.getElementById('paymentTotal').textContent = 'Rp ' + total.toLocaleString('id-ID');
-            showModal('paymentModal');
+
+            chips.innerHTML = cart.map((item, i) => `
+                <div class="cart-chip">
+                    ${item.name} ×${item.qty}
+                    <span class="remove" onclick="event.stopPropagation(); removeFromCart(${i})">×</span>
+                </div>
+            `).join('');
+
+            const sum = cart.reduce((s, i) => s + (i.price * i.qty), 0);
+            total.textContent = 'Rp ' + sum.toLocaleString('id-ID');
+            btn.disabled = false;
         }
 
-        function selectPayment(method, element) {
-            selectedPayment = method;
-            document.querySelectorAll('.payment-option').forEach(opt => opt.classList.remove('active'));
-            element.classList.add('active');
+        // Payment
+        function openPayment() {
+            if (cart.length === 0) return;
+            const sum = cart.reduce((s, i) => s + (i.price * i.qty), 0);
+            document.getElementById('paymentAmount').textContent = 'Rp ' + sum.toLocaleString('id-ID');
+            paymentMethod = 'Tunai';
+            document.querySelectorAll('.pay-option').forEach((el, i) => {
+                el.classList.toggle('active', i === 0);
+            });
+            openModal('paymentModal');
+        }
+
+        function selectPayment(method, el) {
+            paymentMethod = method;
+            document.querySelectorAll('.pay-option').forEach(o => o.classList.remove('active'));
+            el.classList.add('active');
         }
 
         function processPayment() {
             closeModal('paymentModal');
             showLoading();
             
-            const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-            const transactionData = {
-                items: cart,
+            const total = cart.reduce((s, i) => s + (i.price * i.qty), 0);
+            
+            callAPI('saveTransaction', {
+                items: cart.map(i => ({
+                    id: i.id, name: i.name, category: i.category,
+                    price: i.price, quantity: i.qty
+                })),
                 total: total,
-                paymentMethod: selectedPayment
-            };
-
-            fetch(SCRIPT_URL + '?action=saveTransaction', {
-                method: 'POST',
-                body: JSON.stringify(transactionData),
-                headers: { 'Content-Type': 'application/json' }
-            })
-            .then(response => response.json())
-            .then(result => {
+                paymentMethod: paymentMethod
+            }).then(res => {
                 hideLoading();
-                if (result.success) {
+                if (res.success) {
                     cart = [];
-                    updateCartDisplay();
-                    showToast(result.message, 'success');
-                    loadProducts(); // Refresh stok
+                    updateCart();
+                    showToast(res.message, 'success');
                 } else {
                     showToast('❌ Transaksi gagal!', 'error');
                 }
-            })
-            .catch(error => {
-                hideLoading();
-                showToast('❌ Gagal menyimpan transaksi!', 'error');
             });
-        }
-
-        // Reports
-        function loadReport() {
-            const reportType = document.getElementById('reportType').value;
-            const dateInput = document.getElementById('dateInput');
-            const monthInput = document.getElementById('monthInput');
-            
-            if (reportType === 'daily') {
-                dateInput.style.display = 'block';
-                monthInput.style.display = 'none';
-                const date = document.getElementById('reportDate').value;
-                if (date) {
-                    showLoading();
-                    fetch(SCRIPT_URL + '?action=getDailyReport&date=' + date)
-                        .then(response => response.json())
-                        .then(report => {
-                            hideLoading();
-                            displayDailyReport(report);
-                        })
-                        .catch(error => {
-                            hideLoading();
-                            showToast('❌ Gagal memuat laporan!', 'error');
-                        });
-                }
-            } else {
-                dateInput.style.display = 'none';
-                monthInput.style.display = 'block';
-                const monthValue = document.getElementById('reportMonth').value;
-                if (monthValue) {
-                    const [year, month] = monthValue.split('-');
-                    showLoading();
-                    fetch(SCRIPT_URL + '?action=getMonthlyReport&month=' + month + '&year=' + year)
-                        .then(response => response.json())
-                        .then(report => {
-                            hideLoading();
-                            displayMonthlyReport(report);
-                        })
-                        .catch(error => {
-                            hideLoading();
-                            showToast('❌ Gagal memuat laporan!', 'error');
-                        });
-                }
-            }
-        }
-
-        function displayDailyReport(report) {
-            const content = document.getElementById('reportContent');
-            const morningTotal = report.morning.nasiKuning + report.morning.lauk + report.morning.sembako;
-            const eveningTotal = report.evening.nasiKuning + report.evening.lauk + report.evening.sembako;
-            
-            content.innerHTML = `
-                <div class="report-card">
-                    <h3>📅 Laporan Harian - ${report.date}</h3>
-                    
-                    <h4 style="margin-top:12px; color:#FF8C00;">
-                        🌅 Sesi Pagi (06:00-16:59) 
-                        <span class="session-tag morning">${report.morning.transactions} Transaksi</span>
-                    </h4>
-                    <div class="report-row">
-                        <span>🍚 Nasi Kuning</span>
-                        <span>Rp ${report.morning.nasiKuning.toLocaleString('id-ID')}</span>
-                    </div>
-                    <div class="report-row">
-                        <span>🍗 Lauk</span>
-                        <span>Rp ${report.morning.lauk.toLocaleString('id-ID')}</span>
-                    </div>
-                    <div class="report-row">
-                        <span>🛒 Sembako</span>
-                        <span>Rp ${report.morning.sembako.toLocaleString('id-ID')}</span>
-                    </div>
-                    <div class="report-total">
-                        Total Pagi: Rp ${morningTotal.toLocaleString('id-ID')}
-                    </div>
-                    
-                    <h4 style="margin-top:16px; color:#0C5460;">
-                        🌙 Sesi Malam (17:00-05:59) 
-                        <span class="session-tag evening">${report.evening.transactions} Transaksi</span>
-                    </h4>
-                    <div class="report-row">
-                        <span>🍚 Nasi Kuning</span>
-                        <span>Rp ${report.evening.nasiKuning.toLocaleString('id-ID')}</span>
-                    </div>
-                    <div class="report-row">
-                        <span>🍗 Lauk</span>
-                        <span>Rp ${report.evening.lauk.toLocaleString('id-ID')}</span>
-                    </div>
-                    <div class="report-row">
-                        <span>🛒 Sembako</span>
-                        <span>Rp ${report.evening.sembako.toLocaleString('id-ID')}</span>
-                    </div>
-                    <div class="report-total">
-                        Total Malam: Rp ${eveningTotal.toLocaleString('id-ID')}
-                    </div>
-                    
-                    <div class="report-total" style="color:var(--primary); font-size:20px; margin-top:16px; border-top:3px solid var(--primary);">
-                        💰 Total Harian: Rp ${report.total.toLocaleString('id-ID')}
-                        <br>
-                        <small style="font-size:12px; color:#666;">
-                            Total Transaksi: ${report.totalTransactions}
-                        </small>
-                    </div>
-                </div>
-            `;
-        }
-
-        function displayMonthlyReport(report) {
-            const content = document.getElementById('reportContent');
-            let dailyHTML = '';
-            
-            // Sort daily breakdown
-            const sortedDays = Object.keys(report.dailyBreakdown).sort();
-            sortedDays.forEach(day => {
-                const dayData = report.dailyBreakdown[day];
-                dailyHTML += `
-                    <div class="report-row">
-                        <span>📅 Tanggal ${day}</span>
-                        <span>
-                            Pagi: Rp ${dayData.morning.toLocaleString('id-ID')} | 
-                            Malam: Rp ${dayData.evening.toLocaleString('id-ID')}
-                            <br>
-                            <small style="color:#666;">Total: Rp ${dayData.total.toLocaleString('id-ID')}</small>
-                        </span>
-                    </div>
-                `;
-            });
-
-            content.innerHTML = `
-                <div class="report-card">
-                    <h3>📊 Laporan Bulanan - ${report.month}/${report.year}</h3>
-                    
-                    <h4 style="margin-top:12px;">📈 Per Sesi</h4>
-                    <div class="report-row">
-                        <span>🌅 Pagi (${report.sessionBreakdown.morning.transactions} transaksi)</span>
-                        <span>Rp ${report.sessionBreakdown.morning.total.toLocaleString('id-ID')}</span>
-                    </div>
-                    <div class="report-row">
-                        <span>🌙 Malam (${report.sessionBreakdown.evening.transactions} transaksi)</span>
-                        <span>Rp ${report.sessionBreakdown.evening.total.toLocaleString('id-ID')}</span>
-                    </div>
-                    
-                    <h4 style="margin-top:12px;">🏷️ Per Kategori</h4>
-                    ${Object.entries(report.categoryBreakdown).map(([cat, data]) => `
-                        <div class="report-row">
-                            <span>${cat}</span>
-                            <span>
-                                Pagi: Rp ${data.morning.toLocaleString('id-ID')}<br>
-                                Malam: Rp ${data.evening.toLocaleString('id-ID')}
-                            </span>
-                        </div>
-                        <div class="report-row" style="font-weight:600;">
-                            <span>Total ${cat}</span>
-                            <span>Rp ${data.total.toLocaleString('id-ID')}</span>
-                        </div>
-                    `).join('')}
-                    
-                    <h4 style="margin-top:12px;">📅 Per Hari</h4>
-                    ${dailyHTML}
-                    
-                    <div class="report-total" style="color:var(--primary); font-size:20px; margin-top:16px; border-top:3px solid var(--primary);">
-                        💰 Total Bulanan: Rp ${report.total.toLocaleString('id-ID')}
-                        <br>
-                        <small style="font-size:12px; color:#666;">
-                            Total Transaksi: ${report.totalTransactions}
-                        </small>
-                    </div>
-                </div>
-            `;
         }
 
         // Product Management
-        function loadProductList() {
-            fetch(SCRIPT_URL + '?action=getAllProducts')
-                .then(response => response.json())
-                .then(products => {
-                    const updateSelect = document.getElementById('updateProductSelect');
-                    const stockSelect = document.getElementById('updateStockSelect');
-                    const optionsHTML = products.map(p => 
-                        `<option value="${p.id}">${p.name} - Rp ${p.price.toLocaleString('id-ID')} (Stok: ${p.stock})</option>`
-                    ).join('');
-                    
-                    updateSelect.innerHTML = optionsHTML;
-                    stockSelect.innerHTML = optionsHTML;
-                });
-        }
-
         function addProduct() {
-            const name = document.getElementById('newProductName').value.trim();
-            const category = document.getElementById('newProductCategory').value;
-            const price = parseInt(document.getElementById('newProductPrice').value);
+            const name = document.getElementById('prodName').value.trim();
+            const category = document.getElementById('prodCategory').value;
+            const price = document.getElementById('prodPrice').value;
 
-            if (!name || !price) {
-                showToast('⚠️ Mohon isi semua field!', 'error');
-                return;
-            }
+            if (!name || !price) return showToast('⚠️ Isi semua field!', 'error');
 
             showLoading();
-            const data = { name, category, price };
-            
-            fetch(SCRIPT_URL + '?action=addNewProduct', {
-                method: 'POST',
-                body: JSON.stringify(data),
-                headers: { 'Content-Type': 'application/json' }
-            })
-            .then(response => response.json())
-            .then(result => {
+            callAPI('addNewProduct', { name, category, price: parseInt(price) }).then(res => {
                 hideLoading();
-                if (result.success) {
-                    showToast(result.message, 'success');
-                    document.getElementById('newProductName').value = '';
-                    document.getElementById('newProductPrice').value = '';
+                if (res.success) {
+                    showToast(res.message, 'success');
+                    document.getElementById('prodName').value = '';
+                    document.getElementById('prodPrice').value = '';
                     loadProducts();
-                    loadProductList();
+                    populateProductSelects();
+                } else {
+                    showToast(res.message || 'Gagal menambah produk', 'error');
                 }
-            })
-            .catch(error => {
-                hideLoading();
-                showToast('❌ Gagal menambah produk!', 'error');
             });
         }
 
         function updatePrice() {
-            const productId = document.getElementById('updateProductSelect').value;
-            const newPrice = parseInt(document.getElementById('updateProductPrice').value);
-
-            if (!newPrice) {
-                showToast('⚠️ Masukkan harga baru!', 'error');
-                return;
-            }
+            const id = document.getElementById('updateProduct').value;
+            const price = document.getElementById('newPrice').value;
+            if (!price) return showToast('⚠️ Masukkan harga baru!', 'error');
 
             showLoading();
-            const data = { productId, newPrice };
-            
-            fetch(SCRIPT_URL + '?action=updateProductPrice', {
-                method: 'POST',
-                body: JSON.stringify(data),
-                headers: { 'Content-Type': 'application/json' }
-            })
-            .then(response => response.json())
-            .then(result => {
+            callAPI('updateProductPrice', { productId: id, newPrice: parseInt(price) }).then(res => {
                 hideLoading();
-                if (result.success) {
-                    showToast(result.message, 'success');
-                    document.getElementById('updateProductPrice').value = '';
+                if (res.success) {
+                    showToast(res.message, 'success');
+                    document.getElementById('newPrice').value = '';
                     loadProducts();
-                    loadProductList();
+                } else {
+                    showToast(res.message || 'Gagal update harga', 'error');
                 }
-            })
-            .catch(error => {
-                hideLoading();
-                showToast('❌ Gagal update harga!', 'error');
             });
         }
 
-        function updateStock(isAddition) {
-            const productId = document.getElementById('updateStockSelect').value;
-            const quantity = parseInt(document.getElementById('updateStockQuantity').value);
-
-            if (!quantity) {
-                showToast('⚠️ Masukkan jumlah!', 'error');
-                return;
-            }
+        function removeProduct() {
+            const id = document.getElementById('deleteProduct').value;
+            if (!confirm('Nonaktifkan produk ini?')) return;
 
             showLoading();
-            const data = { productId, quantity, isAddition };
-            
-            fetch(SCRIPT_URL + '?action=updateStock', {
-                method: 'POST',
-                body: JSON.stringify(data),
-                headers: { 'Content-Type': 'application/json' }
-            })
-            .then(response => response.json())
-            .then(result => {
+            callAPI('deleteProduct', { productId: id }).then(res => {
                 hideLoading();
-                if (result.success) {
-                    showToast(result.message, 'success');
-                    document.getElementById('updateStockQuantity').value = '';
+                if (res.success) {
+                    showToast(res.message, 'success');
                     loadProducts();
-                    loadProductList();
+                    populateProductSelects();
                 }
-            })
-            .catch(error => {
-                hideLoading();
-                showToast('❌ Gagal update stok!', 'error');
             });
+        }
+
+        function populateProductSelects() {
+            callAPI('getAllProducts').then(data => {
+                if (!Array.isArray(data)) return;
+                const opts = data.map(p => `<option value="${p.id}">${p.name} - Rp ${p.price.toLocaleString('id-ID')}</option>`).join('');
+                document.getElementById('updateProduct').innerHTML = opts;
+                document.getElementById('deleteProduct').innerHTML = opts;
+            });
+        }
+
+        // Reports
+        function switchReportType() {
+            const type = document.getElementById('reportType').value;
+            document.getElementById('dailyDateGroup').style.display = type === 'daily' ? 'block' : 'none';
+            document.getElementById('monthlyDateGroup').style.display = type === 'monthly' ? 'block' : 'none';
+            loadReport();
+        }
+
+        function loadReport() {
+            const type = document.getElementById('reportType').value;
+            const content = document.getElementById('reportContent');
+            
+            if (type === 'daily') {
+                const date = document.getElementById('reportDate').value;
+                if (!date) return;
+                showLoading();
+                callAPI('getDailyReport', null, { date }).then(data => {
+                    // Fix: append date to URL
+                    fetch(`${SCRIPT_URL}?action=getDailyReport&date=${date}`)
+                        .then(r => r.json())
+                        .then(report => {
+                            hideLoading();
+                            displayDailyReport(report);
+                        });
+                });
+            } else {
+                const monthVal = document.getElementById('reportMonth').value;
+                if (!monthVal) return;
+                const [year, month] = monthVal.split('-');
+                showLoading();
+                fetch(`${SCRIPT_URL}?action=getMonthlyReport&month=${month}&year=${year}`)
+                    .then(r => r.json())
+                    .then(report => {
+                        hideLoading();
+                        displayMonthlyReport(report);
+                    });
+            }
+        }
+
+        function displayDailyReport(r) {
+            const content = document.getElementById('reportContent');
+            const mTotal = r.morning.nasiKuning + r.morning.lauk + r.morning.sembako;
+            const eTotal = r.evening.nasiKuning + r.evening.lauk + r.evening.sembako;
+            
+            content.innerHTML = `
+                <div class="report-card">
+                    <h4>📅 ${r.date}</h4>
+                    <h4 class="badge-pagi">🌅 Pagi (${r.morning.totalTrans || 0} transaksi)</h4>
+                    <div class="report-row"><span>🍚 Nasi Kuning</span><span>Rp ${r.morning.nasiKuning.toLocaleString('id-ID')}</span></div>
+                    <div class="report-row"><span>🍗 Lauk</span><span>Rp ${r.morning.lauk.toLocaleString('id-ID')}</span></div>
+                    <div class="report-row"><span>🛒 Sembako</span><span>Rp ${r.morning.sembako.toLocaleString('id-ID')}</span></div>
+                    <div class="report-total">Subtotal Pagi: Rp ${mTotal.toLocaleString('id-ID')}</div>
+                    
+                    <h4 class="badge-malam" style="margin-top:12px;">🌙 Malam (${r.evening.totalTrans || 0} transaksi)</h4>
+                    <div class="report-row"><span>🍚 Nasi Kuning</span><span>Rp ${r.evening.nasiKuning.toLocaleString('id-ID')}</span></div>
+                    <div class="report-row"><span>🍗 Lauk</span><span>Rp ${r.evening.lauk.toLocaleString('id-ID')}</span></div>
+                    <div class="report-row"><span>🛒 Sembako</span><span>Rp ${r.evening.sembako.toLocaleString('id-ID')}</span></div>
+                    <div class="report-total">Subtotal Malam: Rp ${eTotal.toLocaleString('id-ID')}</div>
+                    
+                    <div class="report-total grand-total">💰 Total: Rp ${r.total.toLocaleString('id-ID')}</div>
+                </div>
+            `;
+        }
+
+        function displayMonthlyReport(r) {
+            const content = document.getElementById('reportContent');
+            let daysHtml = '';
+            Object.keys(r.dailyBreakdown).sort().forEach(day => {
+                const d = r.dailyBreakdown[day];
+                daysHtml += `<div class="report-row"><span>📅 Tgl ${day} (${d.totalTrans || 0} trx)</span><span>Rp ${d.total.toLocaleString('id-ID')}</span></div>`;
+            });
+
+            content.innerHTML = `
+                <div class="report-card">
+                    <h4>📆 Bulan ${r.month}/${r.year}</h4>
+                    <h4 class="badge-pagi">🌅 Pagi</h4>
+                    <div class="report-row"><span>🍚 Nasi Kuning</span><span>Rp ${r.categoryBreakdown['Nasi Kuning'].morning.toLocaleString('id-ID')}</span></div>
+                    <div class="report-row"><span>🍗 Lauk</span><span>Rp ${r.categoryBreakdown['Lauk'].morning.toLocaleString('id-ID')}</span></div>
+                    <div class="report-row"><span>🛒 Sembako</span><span>Rp ${r.categoryBreakdown['Sembako'].morning.toLocaleString('id-ID')}</span></div>
+                    
+                    <h4 class="badge-malam" style="margin-top:12px;">🌙 Malam</h4>
+                    <div class="report-row"><span>🍚 Nasi Kuning</span><span>Rp ${r.categoryBreakdown['Nasi Kuning'].evening.toLocaleString('id-ID')}</span></div>
+                    <div class="report-row"><span>🍗 Lauk</span><span>Rp ${r.categoryBreakdown['Lauk'].evening.toLocaleString('id-ID')}</span></div>
+                    <div class="report-row"><span>🛒 Sembako</span><span>Rp ${r.categoryBreakdown['Sembako'].evening.toLocaleString('id-ID')}</span></div>
+                    
+                    ${daysHtml ? '<h4 style="margin-top:12px;">📅 Per Hari</h4>' + daysHtml : ''}
+                    
+                    <div class="report-total grand-total">💰 Total: Rp ${r.total.toLocaleString('id-ID')}</div>
+                </div>
+            `;
         }
 
         // UI Helpers
-        function showModal(modalId) {
-            document.getElementById(modalId).classList.add('show');
-            if (modalId === 'productModal') loadProductList();
-            if (modalId === 'reportModal') loadReport();
+        function openModal(id) {
+            document.getElementById(id).classList.add('show');
+            if (id === 'productModal') populateProductSelects();
+            if (id === 'reportModal') loadReport();
         }
 
-        function closeModal(modalId) {
-            document.getElementById(modalId).classList.remove('show');
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('show');
         }
 
-        function showToast(message, type = 'success') {
+        function showToast(msg, type) {
             const container = document.getElementById('toastContainer');
             const toast = document.createElement('div');
-            toast.className = `toast-popup toast-${type}`;
-            
-            const icons = {
-                success: '✅',
-                error: '❌',
-                info: 'ℹ️'
-            };
-            
-            toast.innerHTML = `
-                <span class="toast-icon">${icons[type]}</span>
-                <span class="toast-message">${message}</span>
-            `;
-            
+            toast.className = `toast ${type}`;
+            toast.textContent = msg;
             container.appendChild(toast);
-            
             setTimeout(() => {
-                toast.style.animation = 'slideDown 0.3s ease reverse';
+                toast.style.animation = 'slideIn 0.3s ease reverse';
                 setTimeout(() => toast.remove(), 300);
-            }, 3000);
+            }, 2500);
         }
 
-        function showLoading() {
-            document.getElementById('loadingScreen').classList.add('show');
-        }
+        function showLoading() { document.getElementById('loadingScreen').classList.add('show'); }
+        function hideLoading() { document.getElementById('loadingScreen').classList.remove('show'); }
 
-        function hideLoading() {
-            document.getElementById('loadingScreen').classList.remove('show');
-        }
-
-        // Close modal when clicking overlay
-        document.addEventListener('click', function(e) {
+        document.addEventListener('click', (e) => {
             if (e.target.classList.contains('modal-overlay')) {
                 e.target.classList.remove('show');
-            }
-        });
-
-        // Keyboard shortcuts
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') {
-                document.querySelectorAll('.modal-overlay.show').forEach(m => m.classList.remove('show'));
             }
         });
     </script>
