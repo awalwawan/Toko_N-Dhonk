@@ -102,7 +102,7 @@
 <body>
     <div class="app">
         <div class="topbar">
-            <div><span class="dot" id="dot"></span> <span id="statusText">...</span></div>
+            <div><span class="dot" id="dot"></span> <span id="statusText">Terhubung</span></div>
             <div style="font-weight:700;" id="clock">--:--</div>
             <div class="session pagi" id="sessionBadge">🌅 PAGI</div>
         </div>
@@ -141,8 +141,8 @@
             <button class="modal-close" onclick="closeModal('paymentModal')">✕</button>
             <h3>💳 Pembayaran</h3>
             <div class="pay-opts">
-                <div class="pay-opt active" onclick="setPayment('Tunai',this)">💵 Tunai</div>
-                <div class="pay-opt" onclick="setPayment('QRIS',this)">📱 QRIS</div>
+                <div class="pay-opt active" id="payOptTunai" onclick="setPayment('Tunai',this)">💵 Tunai</div>
+                <div class="pay-opt" id="payOptQris" onclick="setPayment('QRIS',this)">📱 QRIS</div>
             </div>
             <div id="tunaiSection">
                 <div class="cart-row"><span>Total</span><span class="cart-total" id="payAmount">Rp 0</span></div>
@@ -208,320 +208,415 @@
     <div class="loading" id="loading"><div class="spinner"></div></div>
 
     <script>
-        // ⚠️ GANTI DENGAN URL DEPLOYMENT ANDA
-        const API = 'https://script.google.com/macros/s/AKfycby0mpLoFPYZe5Yp_YMkrJAXSOhHPM1X-WA5Hgq5ciPCl1osy9WUs_LKu3k0mqt6EsLG/exec';
+        // Ganti URL Web App sesuai Google Apps Script Anda
+        const API = 'https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec';
         
-        const PECAHAN = [100000, 50000, 20000, 10000, 5000, 2000, 1000, 500];
-        let products = [], cart = [], filter = 'Semua', payment = 'Tunai';
-        
-        document.addEventListener('DOMContentLoaded', () => {
-            setDates();
+        let products = [];
+        let cart = [];
+        let currentCat = 'Semua';
+        let paymentMethod = 'Tunai';
+        let currentSession = 'PAGI';
+
+        window.onload = function() {
             updateClock();
-            setInterval(updateClock, 30000);
-            checkConnection();
+            setInterval(updateClock, 1000);
+            
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('rDate').value = today;
+            
+            const now = new Date();
+            const m = String(now.getMonth() + 1).padStart(2, '0');
+            document.getElementById('rMonth').value = `${now.getFullYear()}-${m}`;
+            
             loadProducts();
-        });
-        
-        function setDates() {
-            const now = new Date().toISOString().split('T')[0];
-            document.getElementById('rDate').value = now;
-            document.getElementById('rMonth').value = now.slice(0,7);
-        }
-        
+        };
+
         function updateClock() {
             const now = new Date();
-            document.getElementById('clock').textContent = now.getHours() + ':' + now.getMinutes().toString().padStart(2,'0');
-            const badge = document.getElementById('sessionBadge');
             const h = now.getHours();
-            if (h >= 6 && h < 17) { badge.textContent = '🌅 PAGI'; badge.className = 'session pagi'; }
-            else { badge.textContent = '🌙 MALAM'; badge.className = 'session malam'; }
+            const m = String(now.getMinutes()).padStart(2, '0');
+            document.getElementById('clock').innerText = `${String(h).padStart(2, '0')}:${m}`;
+            
+            const badge = document.getElementById('sessionBadge');
+            if (h >= 5 && h < 16) {
+                currentSession = 'PAGI';
+                badge.className = 'session pagi';
+                badge.innerText = '🌅 PAGI';
+            } else {
+                currentSession = 'MALAM';
+                badge.className = 'session malam';
+                badge.innerText = '🌙 MALAM';
+            }
         }
-        
-        function formatRupiah(n) { return 'Rp ' + Number(n).toLocaleString('id-ID'); }
-        
+
         async function fetchAPI(action, data = null, params = '') {
             try {
                 let url = API + '?action=' + action + params;
                 let opts = { method: 'GET' };
-                if (data) { opts.method = 'POST'; opts.body = JSON.stringify(data); }
+                
+                if (data) {
+                    opts.method = 'POST';
+                    // Header text/plain mencegah CORS preflight
+                    opts.headers = { 'Content-Type': 'text/plain;charset=utf-8' };
+                    opts.body = JSON.stringify(data);
+                }
+                
                 const res = await fetch(url, opts);
                 return await res.json();
-            } catch(e) { console.error(e); return { error: true }; }
+            } catch(e) { 
+                console.error('Fetch API Error:', e); 
+                return { error: true }; 
+            }
         }
-        
-        function checkConnection() {
-            fetchAPI('checkConnection').then(r => {
-                const dot = document.getElementById('dot');
-                if (r && r.connected) { dot.classList.remove('off'); document.getElementById('statusText').textContent = 'Online'; }
-                else { dot.classList.add('off'); document.getElementById('statusText').textContent = 'Offline'; setTimeout(checkConnection, 3000); }
-            });
+
+        function showLoading() { document.getElementById('loading').classList.add('show'); }
+        function hideLoading() { document.getElementById('loading').classList.remove('show'); }
+
+        function showToast(msg, isErr = false) {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${isErr ? 'err' : ''}`;
+            toast.innerText = msg;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
         }
-        
+
+        function formatRp(val) {
+            return 'Rp ' + Number(val || 0).toLocaleString('id-ID');
+        }
+
         function loadProducts() {
             showLoading();
             fetchAPI('getProducts').then(data => {
                 hideLoading();
-                products = Array.isArray(data) ? data : [];
-                renderProducts();
+                if (Array.isArray(data)) {
+                    products = data;
+                    renderProducts();
+                    populateSelects();
+                    document.getElementById('dot').classList.remove('off');
+                    document.getElementById('statusText').innerText = 'Terhubung';
+                } else {
+                    document.getElementById('dot').classList.add('off');
+                    document.getElementById('statusText').innerText = 'Gagal';
+                }
+            }).catch(() => hideLoading());
+        }
+
+        function renderProducts() {
+            const container = document.getElementById('productArea');
+            container.innerHTML = '';
+            
+            const cats = ['Nasi Kuning', 'Lauk', 'Sembako'];
+            const filtered = currentCat === 'Semua' ? products : products.filter(p => p.category === currentCat);
+            
+            cats.forEach(c => {
+                if (currentCat !== 'Semua' && currentCat !== c) return;
+                const items = filtered.filter(p => p.category === c);
+                if (items.length === 0) return;
+                
+                let catClass = 'cat-nk';
+                if (c === 'Lauk') catClass = 'cat-lauk';
+                if (c === 'Sembako') catClass = 'cat-sembako';
+                
+                const title = document.createElement('div');
+                title.className = `cat-title ${catClass}`;
+                title.innerText = c;
+                container.appendChild(title);
+                
+                const list = document.createElement('div');
+                list.className = 'product-list';
+                
+                items.forEach(p => {
+                    const card = document.createElement('div');
+                    card.className = 'product-card';
+                    card.onclick = () => addToCart(p);
+                    card.innerHTML = `
+                        <div class="pcat">${p.category}</div>
+                        <div class="pname">${p.name}</div>
+                        <div class="pprice">${formatRp(p.price)}</div>
+                    `;
+                    list.appendChild(card);
+                });
+                
+                container.appendChild(list);
             });
         }
-        
-        function renderProducts() {
-            const area = document.getElementById('productArea');
-            if (products.length === 0) {
-                area.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted);">📦 Belum ada produk</div>';
-                return;
-            }
-            
-            if (filter === 'Semua') {
-                const cats = [
-                    { key: 'Nasi Kuning', title: '🍚 Nasi Kuning', cls: 'cat-nk' },
-                    { key: 'Lauk', title: '🍗 Lauk', cls: 'cat-lauk' },
-                    { key: 'Sembako', title: '🛒 Sembako', cls: 'cat-sembako' }
-                ];
-                
-                let html = '';
-                cats.forEach(cat => {
-                    const items = products.filter(p => p.category === cat.key);
-                    if (items.length > 0) {
-                        html += `<div class="cat-title ${cat.cls}">${cat.title}</div>`;
-                        html += '<div class="product-list">' + items.map(p => productCard(p)).join('') + '</div>';
-                    }
-                });
-                area.innerHTML = html || '<div style="text-align:center;padding:40px;color:var(--muted);">📦 Belum ada produk</div>';
-            } else {
-                const filtered = products.filter(p => p.category === filter);
-                if (filtered.length === 0) {
-                    area.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted);">Tidak ada produk</div>';
-                    return;
-                }
-                area.innerHTML = '<div class="product-list">' + filtered.map(p => productCard(p)).join('') + '</div>';
-            }
-        }
-        
-        function productCard(p) {
-            return `<div class="product-card" onclick="addToCart('${p.id}','${p.name.replace(/'/g,"\\'")}',${p.price},'${p.category}')">
-                <div class="pcat">${p.category}</div>
-                <div class="pname">${p.name}</div>
-                <div class="pprice">${formatRupiah(p.price)}</div>
-            </div>`;
-        }
-        
+
         function filterCat(cat, el) {
-            filter = cat;
+            currentCat = cat;
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             el.classList.add('active');
             renderProducts();
         }
-        
-        function addToCart(id, name, price, cat) {
-            const existing = cart.find(i => i.id === id);
-            if (existing) existing.qty++;
-            else cart.push({ id, name, price, category: cat, qty: 1 });
-            updateCart();
-            toast('✅ Ditambahkan');
-        }
-        
-        function updateQty(index, delta) {
-            cart[index].qty += delta;
-            if (cart[index].qty <= 0) cart.splice(index, 1);
-            updateCart();
-        }
-        
-        function clearCart() { cart = []; updateCart(); toast('🗑️ Dikosongkan'); }
-        
-        function updateCart() {
-            const container = document.getElementById('cartItems');
-            const totalEl = document.getElementById('cartTotal');
-            const btn = document.getElementById('btnPay');
-            
-            if (cart.length === 0) {
-                container.innerHTML = '<div style="color:var(--muted);font-size:11px;text-align:center;padding:8px;">🛒 Keranjang kosong</div>';
-                totalEl.textContent = 'Rp 0';
-                btn.disabled = true;
-                return;
+
+        function addToCart(p) {
+            const exist = cart.find(i => i.id === p.id);
+            if (exist) {
+                exist.qty++;
+            } else {
+                cart.push({ id: p.id, name: p.name, price: p.price, qty: 1 });
             }
-            
-            container.innerHTML = cart.map((item, i) => `
-                <div class="cart-item">
-                    <div style="flex:1;font-size:11px;">${item.name}</div>
-                    <div class="qty-control">
-                        <button class="qty-btn" onclick="updateQty(${i}, -1)">−</button>
-                        <span style="min-width:20px;text-align:center;font-weight:700;">${item.qty}</span>
-                        <button class="qty-btn" onclick="updateQty(${i}, 1)">+</button>
-                    </div>
-                    <div class="item-total">${formatRupiah(item.price * item.qty)}</div>
-                </div>
-            `).join('');
-            
-            const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
-            totalEl.textContent = formatRupiah(total);
-            btn.disabled = false;
+            renderCart();
         }
-        
-        function getCartTotal() { return cart.reduce((s, i) => s + i.price * i.qty, 0); }
-        
+
+        function updateQty(id, delta) {
+            const item = cart.find(i => i.id === id);
+            if (!item) return;
+            item.qty += delta;
+            if (item.qty <= 0) {
+                cart = cart.filter(i => i.id !== id);
+            }
+            renderCart();
+        }
+
+        function clearCart() {
+            cart = [];
+            renderCart();
+        }
+
+        function getTotal() {
+            return cart.reduce((sum, i) => sum + (i.price * i.qty), 0);
+        }
+
+        function renderCart() {
+            const container = document.getElementById('cartItems');
+            container.innerHTML = '';
+            
+            cart.forEach(i => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'cart-item';
+                itemDiv.innerHTML = `
+                    <div>
+                        <div style="font-weight:600;">${i.name}</div>
+                        <div style="font-size:10px;color:var(--muted);">${formatRp(i.price)}</div>
+                    </div>
+                    <div class="qty-control">
+                        <button class="qty-btn" onclick="updateQty('${i.id}', -1)">-</button>
+                        <span>${i.qty}</span>
+                        <button class="qty-btn" onclick="updateQty('${i.id}', 1)">+</button>
+                    </div>
+                    <div class="item-total">${formatRp(i.price * i.qty)}</div>
+                `;
+                container.appendChild(itemDiv);
+            });
+            
+            const total = getTotal();
+            document.getElementById('cartTotal').innerText = formatRp(total);
+            document.getElementById('btnPay').disabled = cart.length === 0;
+        }
+
+        function openModal(id) {
+            document.getElementById(id).classList.add('show');
+            if (id === 'reportModal') loadReport();
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('show');
+        }
+
         function openPayment() {
             if (cart.length === 0) return;
-            const total = getCartTotal();
-            document.getElementById('payAmount').textContent = formatRupiah(total);
-            document.getElementById('qrisAmount').textContent = formatRupiah(total);
+            const total = getTotal();
+            document.getElementById('payAmount').innerText = formatRp(total);
+            document.getElementById('qrisAmount').innerText = formatRp(total);
             
-            // Rekomendasi uang yang masuk akal
-            const suggestions = document.getElementById('moneySuggestions');
-            let amounts = [];
-            // Bulatkan ke atas
-            const r500 = Math.ceil(total / 500) * 500;
-            const r1000 = Math.ceil(total / 1000) * 1000;
-            const r5000 = Math.ceil(total / 5000) * 5000;
-            const r10000 = Math.ceil(total / 10000) * 10000;
-            
-            amounts.push(r500, r1000, r5000, r10000);
-            // Tambah pecahan besar yang masuk akal
-            PECAHAN.forEach(p => { if (p >= total && p <= total * 3) amounts.push(p); });
-            
-            // Remove duplicates & sort
-            amounts = [...new Set(amounts)].filter(a => a >= total).sort((a,b) => a-b).slice(0, 6);
-            
-            suggestions.innerHTML = amounts.map(a => 
-                `<div class="money-chip" onclick="setCash(${a})">${formatRupiah(a)}</div>`
-            ).join('');
-            
+            generateSuggestions(total);
             document.getElementById('cashReceived').value = '';
             document.getElementById('changeDisplay').style.display = 'none';
-            document.getElementById('tunaiSection').style.display = 'block';
-            document.getElementById('qrisSection').style.display = 'none';
-            payment = 'Tunai';
-            document.querySelectorAll('.pay-opt').forEach((el, i) => el.classList.toggle('active', i === 0));
             
+            setPayment('Tunai', document.getElementById('payOptTunai'));
             openModal('paymentModal');
         }
-        
+
         function setPayment(method, el) {
-            payment = method;
+            paymentMethod = method;
             document.querySelectorAll('.pay-opt').forEach(o => o.classList.remove('active'));
-            el.classList.add('active');
-            document.getElementById('tunaiSection').style.display = method === 'Tunai' ? 'block' : 'none';
-            document.getElementById('qrisSection').style.display = method === 'QRIS' ? 'block' : 'none';
+            if(el) el.classList.add('active');
+            
+            if (method === 'Tunai') {
+                document.getElementById('tunaiSection').style.display = 'block';
+                document.getElementById('qrisSection').style.display = 'none';
+            } else {
+                document.getElementById('tunaiSection').style.display = 'none';
+                document.getElementById('qrisSection').style.display = 'block';
+            }
         }
-        
-        function setCash(amount) {
-            document.getElementById('cashReceived').value = amount;
-            calculateChange();
+
+        function generateSuggestions(total) {
+            const container = document.getElementById('moneySuggestions');
+            container.innerHTML = '';
+            
+            const chips = [total];
+            const denoms = [2000, 5000, 10000, 20000, 50000, 100000];
+            
+            denoms.forEach(d => {
+                if (d > total) {
+                    const ceil = Math.ceil(total / d) * d;
+                    if (!chips.includes(ceil)) chips.push(ceil);
+                }
+            });
+            
+            chips.sort((a,b) => a - b).slice(0, 4).forEach(amt => {
+                const chip = document.createElement('div');
+                chip.className = 'money-chip';
+                chip.innerText = formatRp(amt);
+                chip.onclick = () => {
+                    document.getElementById('cashReceived').value = amt;
+                    calculateChange();
+                };
+                container.appendChild(chip);
+            });
         }
-        
+
         function calculateChange() {
-            const total = getCartTotal();
-            const received = Number(document.getElementById('cashReceived').value) || 0;
-            const change = received - total;
-            const display = document.getElementById('changeDisplay');
+            const total = getTotal();
+            const rec = Number(document.getElementById('cashReceived').value) || 0;
+            const changeDiv = document.getElementById('changeDisplay');
             
-            if (received <= 0) { display.style.display = 'none'; return; }
-            display.style.display = 'block';
+            if (rec >= total && total > 0) {
+                const change = rec - total;
+                changeDiv.style.display = 'block';
+                changeDiv.innerHTML = `<span style="font-size:11px;color:var(--muted);">Kembalian:</span><br><strong style="font-size:16px;color:var(--success);">${formatRp(change)}</strong>`;
+            } else {
+                changeDiv.style.display = 'none';
+            }
+        }
+
+        function processPayment() {
+            const total = getTotal();
+            let cashRec = total;
+            let change = 0;
             
-            if (change < 0) {
-                display.innerHTML = `<div style="color:var(--danger);font-weight:700;">❌ Kurang ${formatRupiah(Math.abs(change))}</div>`;
+            if (paymentMethod === 'Tunai') {
+                cashRec = Number(document.getElementById('cashReceived').value) || 0;
+                if (cashRec < total) {
+                    showToast('Uang diterima kurang!', true);
+                    return;
+                }
+                change = cashRec - total;
+            }
+            
+            const payload = {
+                items: cart,
+                total: total,
+                paymentMethod: paymentMethod,
+                cashReceived: cashRec,
+                change: change,
+                session: currentSession
+            };
+            
+            showLoading();
+            fetchAPI('saveTransaction', payload).then(res => {
+                hideLoading();
+                if (res && res.success) {
+                    showToast('Transaksi berhasil!');
+                    clearCart();
+                    closeModal('paymentModal');
+                } else {
+                    showToast('Gagal menyimpan transaksi', true);
+                }
+            }).catch(() => hideLoading());
+        }
+
+        function populateSelects() {
+            const updateSel = document.getElementById('updateSelect');
+            const deleteSel = document.getElementById('deleteSelect');
+            
+            updateSel.innerHTML = '';
+            deleteSel.innerHTML = '';
+            
+            products.forEach(p => {
+                const opt1 = document.createElement('option');
+                opt1.value = p.id;
+                opt1.innerText = `${p.name} (${formatRp(p.price)})`;
+                updateSel.appendChild(opt1);
+                
+                const opt2 = document.createElement('option');
+                opt2.value = p.id;
+                opt2.innerText = `${p.name} (${p.category})`;
+                deleteSel.appendChild(opt2);
+            });
+        }
+
+        function addProduct() {
+            const name = document.getElementById('pName').value;
+            const cat = document.getElementById('pCat').value;
+            const price = Number(document.getElementById('pPrice').value);
+            
+            if (!name || !price) {
+                showToast('Isi nama & harga!', true);
                 return;
             }
             
-            let remaining = change;
-            let detail = [];
-            PECAHAN.forEach(p => {
-                const count = Math.floor(remaining / p);
-                if (count > 0) { detail.push(`${count}× ${formatRupiah(p)}`); remaining -= count * p; }
-            });
-            
-            display.innerHTML = `
-                <div style="color:var(--success);font-weight:800;font-size:16px;">💰 Kembalian: ${formatRupiah(change)}</div>
-                ${detail.length > 0 ? `<div style="font-size:10px;color:var(--muted);margin-top:3px;">${detail.join(', ')}</div>` : '<div style="font-size:10px;color:var(--muted);">Uang pas</div>'}
-            `;
-        }
-        
-        function processPayment() {
-            if (payment === 'Tunai') {
-                const total = getCartTotal();
-                const received = Number(document.getElementById('cashReceived').value) || 0;
-                if (received < total) { toast('⚠️ Uang kurang!', true); return; }
-            }
-            
-            closeModal('paymentModal');
             showLoading();
-            
-            fetchAPI('saveTransaction', {
-                items: cart.map(i => ({ id:i.id, name:i.name, category:i.category, price:i.price, qty:i.qty })),
-                total: getCartTotal(),
-                payment: payment
-            }).then(r => {
+            fetchAPI('addProduct', { name, category: cat, price }).then(res => {
                 hideLoading();
-                if (r && r.success) {
-                    const change = payment === 'Tunai' ? (Number(document.getElementById('cashReceived').value) || 0) - getCartTotal() : 0;
-                    cart = [];
-                    updateCart();
-                    toast('✅ Berhasil! ' + r.session);
-                    if (change > 0) setTimeout(() => toast('💰 Kembalian: ' + formatRupiah(change)), 1500);
-                } else { toast('❌ Gagal!', true); }
-            });
-        }
-        
-        function addProduct() {
-            const name = document.getElementById('pName').value.trim();
-            const cat = document.getElementById('pCat').value;
-            const price = document.getElementById('pPrice').value;
-            if (!name || !price) return toast('⚠️ Isi semua!', true);
-            
-            showLoading();
-            fetchAPI('addProduct', { name, category: cat, price: Number(price) }).then(r => {
-                hideLoading();
-                if (r && r.success) {
+                if (res && res.success) {
+                    showToast('Produk ditambahkan');
                     document.getElementById('pName').value = '';
                     document.getElementById('pPrice').value = '';
-                    toast('✅ Ditambahkan!');
+                    closeModal('productModal');
                     loadProducts();
-                    populateSelects();
-                } else { toast('❌ Gagal!', true); }
-            });
+                } else {
+                    showToast('Gagal menambah produk', true);
+                }
+            }).catch(() => hideLoading());
         }
-        
+
         function updateProductPrice() {
             const id = document.getElementById('updateSelect').value;
-            const price = document.getElementById('updatePrice').value;
-            if (!id || !price) return toast('⚠️ Lengkapi!', true);
+            const price = Number(document.getElementById('updatePrice').value);
+            
+            if (!id || !price) {
+                showToast('Pilih produk & harga baru!', true);
+                return;
+            }
             
             showLoading();
-            fetchAPI('updatePrice', { id, price: Number(price) }).then(r => {
+            fetchAPI('updateProductPrice', { id, price }).then(res => {
                 hideLoading();
-                if (r && r.success) { document.getElementById('updatePrice').value = ''; toast('✅ Diupdate!'); loadProducts(); }
-                else { toast('❌ Gagal!', true); }
-            });
+                if (res && res.success) {
+                    showToast('Harga diperbarui');
+                    document.getElementById('updatePrice').value = '';
+                    closeModal('productModal');
+                    loadProducts();
+                } else {
+                    showToast('Gagal update harga', true);
+                }
+            }).catch(() => hideLoading());
         }
-        
+
         function deleteProduct() {
             const id = document.getElementById('deleteSelect').value;
-            if (!id || !confirm('Nonaktifkan?')) return;
+            if (!id) return;
+            
+            if (!confirm('Yakin ingin menonaktifkan produk ini?')) return;
             
             showLoading();
-            fetchAPI('deleteProduct', { id }).then(r => {
+            fetchAPI('deleteProduct', { id }).then(res => {
                 hideLoading();
-                if (r && r.success) { toast('✅ Dinonaktifkan!'); loadProducts(); populateSelects(); }
-                else { toast('❌ Gagal!', true); }
-            });
+                if (res && res.success) {
+                    showToast('Produk dinonaktifkan');
+                    closeModal('productModal');
+                    loadProducts();
+                } else {
+                    showToast('Gagal menonaktifkan', true);
+                }
+            }).catch(() => hideLoading());
         }
-        
-        function populateSelects() {
-            fetchAPI('getProducts').then(data => {
-                if (!Array.isArray(data)) return;
-                const opts = data.map(p => `<option value="${p.id}">${p.name} - ${formatRupiah(p.price)}</option>`).join('');
-                document.getElementById('updateSelect').innerHTML = opts;
-                document.getElementById('deleteSelect').innerHTML = opts;
-            });
-        }
-        
+
         function switchReport() {
-            document.getElementById('dailyDate').style.display = document.getElementById('reportType').value === 'daily' ? 'block' : 'none';
-            document.getElementById('monthlyDate').style.display = document.getElementById('reportType').value === 'monthly' ? 'block' : 'none';
+            const type = document.getElementById('reportType').value;
+            if (type === 'daily') {
+                document.getElementById('dailyDate').style.display = 'block';
+                document.getElementById('monthlyDate').style.display = 'none';
+            } else {
+                document.getElementById('dailyDate').style.display = 'none';
+                document.getElementById('monthlyDate').style.display = 'block';
+            }
             loadReport();
         }
-        
+
         function loadReport() {
             const type = document.getElementById('reportType').value;
             showLoading();
@@ -529,127 +624,86 @@
             if (type === 'daily') {
                 const date = document.getElementById('rDate').value;
                 if (!date) { hideLoading(); return; }
-                console.log('Loading daily report for:', date);
-                fetchAPI('getDailyReport', null, '&date=' + date).then(r => {
+                
+                fetchAPI('getDailyReport', null, '&date=' + encodeURIComponent(date)).then(r => {
                     hideLoading();
-                    console.log('Daily report response:', r);
                     displayDaily(r);
                 }).catch(e => { hideLoading(); console.error(e); });
             } else {
                 const mv = document.getElementById('rMonth').value;
                 if (!mv) { hideLoading(); return; }
+                
                 const [y, m] = mv.split('-');
-                fetchAPI('getMonthlyReport', null, '&month=' + m + '&year=' + y).then(r => {
+                const monthNum = parseInt(m, 10);
+                const yearNum = parseInt(y, 10);
+                
+                fetchAPI('getMonthlyReport', null, '&month=' + monthNum + '&year=' + yearNum).then(r => {
                     hideLoading();
                     displayMonthly(r);
                 }).catch(e => { hideLoading(); console.error(e); });
             }
         }
-        
-        function catRow(label, data) {
-            if (!data) return '';
-            return `<div style="margin:4px 0;padding:6px;background:rgba(255,255,255,0.02);border-radius:6px;">
-                <div style="font-weight:700;font-size:11px;">${label}</div>
-                <div class="report-row"><span>💵 Tunai</span><span>${formatRupiah(data.tunai||0)}</span></div>
-                <div class="report-row"><span>📱 QRIS</span><span>${formatRupiah(data.qris||0)}</span></div>
-                <div class="report-row" style="color:var(--primary);font-weight:700;"><span>Total</span><span>${formatRupiah(data.total||0)}</span></div>
-            </div>`;
-        }
-        
-        function displayDaily(r) {
-            const c = document.getElementById('reportContent');
-            if (!r || r.total === undefined || r.total === null) {
-                c.innerHTML = '<p style="text-align:center;color:var(--muted);padding:20px;">📭 Tidak ada data</p>';
+
+        function displayDaily(data) {
+            const container = document.getElementById('reportContent');
+            if (data.error) {
+                container.innerHTML = '<div style="text-align:center;padding:10px;">Gagal memuat laporan</div>';
                 return;
             }
-            
-            c.innerHTML = `
+            container.innerHTML = `
                 <div class="report-card">
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-                        <strong>📅 ${r.date}</strong>
-                        <button class="btn" style="padding:5px 10px;font-size:10px;background:transparent;border:1px solid var(--border);color:var(--primary);" onclick="showDetail('${r.date}')">📋 Rincian</button>
-                    </div>
-                    <div style="color:#fbbf24;font-weight:700;font-size:11px;">🌅 Pagi (${r.pagi?.trx||0} transaksi)</div>
-                    ${catRow('🍚 Nasi Kuning', r.pagi?.nk)}
-                    ${catRow('🍗 Lauk', r.pagi?.lauk)}
-                    ${catRow('🛒 Sembako', r.pagi?.sembako)}
-                    <div class="report-total">Subtotal Pagi: ${formatRupiah(r.pagi?.total||0)}</div>
-                    
-                    <div style="color:#818cf8;font-weight:700;font-size:11px;margin-top:10px;">🌙 Malam (${r.malam?.trx||0} transaksi)</div>
-                    ${catRow('🍚 Nasi Kuning', r.malam?.nk)}
-                    ${catRow('🍗 Lauk', r.malam?.lauk)}
-                    ${catRow('🛒 Sembako', r.malam?.sembako)}
-                    <div class="report-total">Subtotal Malam: ${formatRupiah(r.malam?.total||0)}</div>
-                    
-                    <div class="report-total" style="color:var(--primary);font-size:15px;">💰 Total: ${formatRupiah(r.total||0)}</div>
+                    <div class="report-row"><span>Jumlah Transaksi</span><strong>${data.count || 0}</strong></div>
+                    <div class="report-row"><span>Tunai</span><strong>${formatRp(data.cash)}</strong></div>
+                    <div class="report-row"><span>QRIS</span><strong>${formatRp(data.qris)}</strong></div>
+                    <div class="report-row report-total"><span>Total Omset</span><strong style="color:var(--primary);">${formatRp(data.total)}</strong></div>
+                </div>
+                <button class="btn btn-pay" style="width:100%;font-size:12px;" onclick="loadDetail('${data.date}')">📋 Lihat Detail Transaksi</button>
+            `;
+        }
+
+        function displayMonthly(data) {
+            const container = document.getElementById('reportContent');
+            if (data.error) {
+                container.innerHTML = '<div style="text-align:center;padding:10px;">Gagal memuat laporan</div>';
+                return;
+            }
+            container.innerHTML = `
+                <div class="report-card">
+                    <div class="report-row"><span>Total Transaksi</span><strong>${data.count || 0}</strong></div>
+                    <div class="report-row"><span>Total Tunai</span><strong>${formatRp(data.cash)}</strong></div>
+                    <div class="report-row"><span>Total QRIS</span><strong>${formatRp(data.qris)}</strong></div>
+                    <div class="report-row report-total"><span>Total Omset Bulan Ini</span><strong style="color:var(--primary);">${formatRp(data.total)}</strong></div>
                 </div>
             `;
         }
-        
-        function showDetail(date) {
+
+        function loadDetail(date) {
             showLoading();
-            fetchAPI('getDailyDetail', null, '&date=' + date).then(r => {
+            fetchAPI('getDailyDetail', null, '&date=' + encodeURIComponent(date)).then(items => {
                 hideLoading();
-                const c = document.getElementById('detailContent');
-                if (!r || !r.transactions || r.transactions.length === 0) {
-                    c.innerHTML = '<p style="text-align:center;color:var(--muted);">Tidak ada transaksi</p>';
+                const container = document.getElementById('detailContent');
+                container.innerHTML = '';
+                
+                if (!Array.isArray(items) || items.length === 0) {
+                    container.innerHTML = '<div style="text-align:center;padding:10px;color:var(--muted);">Tidak ada transaksi</div>';
                 } else {
-                    let html = `<p style="font-size:11px;color:var(--muted);margin-bottom:8px;">📅 ${date} · ${r.transactions.length} transaksi</p>`;
-                    r.transactions.forEach(t => {
-                        html += `<div class="detail-item">
-                            <div class="detail-header"><span>#${t.id.slice(-8)}</span><span style="color:${t.session==='Pagi'?'#fbbf24':'#818cf8'}">${t.session==='Pagi'?'🌅':'🌙'} ${t.time}</span></div>
-                            ${t.items.map(i => `<div class="report-row"><span>${i.name} ×${i.qty}</span><span>${formatRupiah(i.subtotal)}</span></div>`).join('')}
-                            <div style="font-weight:700;margin-top:4px;padding-top:4px;border-top:1px solid var(--border);display:flex;justify-content:space-between;"><span>${t.payment}</span><span>${formatRupiah(t.total)}</span></div>
-                        </div>`;
+                    items.forEach(item => {
+                        const div = document.createElement('div');
+                        div.className = 'detail-item';
+                        div.innerHTML = `
+                            <div class="detail-header">
+                                <span>${item.time} (${item.session})</span>
+                                <span style="color:var(--primary);">${formatRp(item.total)}</span>
+                            </div>
+                            <div style="color:var(--muted);">${item.items}</div>
+                            <div style="margin-top:4px;font-size:10px;color:var(--muted);">Bayar: ${item.method}</div>
+                        `;
+                        container.appendChild(div);
                     });
-                    c.innerHTML = html;
                 }
                 openModal('detailModal');
-            }).catch(e => { hideLoading(); });
+            }).catch(() => hideLoading());
         }
-        
-        function displayMonthly(r) {
-            const c = document.getElementById('reportContent');
-            if (!r || r.total === undefined || r.total === null) {
-                c.innerHTML = '<p style="text-align:center;color:var(--muted);padding:20px;">📭 Tidak ada data</p>';
-                return;
-            }
-            
-            let days = '';
-            if (r.days) Object.keys(r.days).sort().forEach(d => { days += `<div class="report-row"><span>📅 Tgl ${d}</span><span>${formatRupiah(r.days[d])}</span></div>`; });
-            
-            const nk = r.cat?.nk || {}, lauk = r.cat?.lauk || {}, sembako = r.cat?.sembako || {};
-            
-            c.innerHTML = `<div class="report-card">
-                <strong>📆 ${r.month}/${r.year}</strong>
-                <div style="color:#fbbf24;font-weight:700;font-size:11px;margin-top:8px;">🌅 Pagi</div>
-                ${catRow('🍚 Nasi Kuning', nk.pagi)} ${catRow('🍗 Lauk', lauk.pagi)} ${catRow('🛒 Sembako', sembako.pagi)}
-                <div style="color:#818cf8;font-weight:700;font-size:11px;margin-top:8px;">🌙 Malam</div>
-                ${catRow('🍚 Nasi Kuning', nk.malam)} ${catRow('🍗 Lauk', lauk.malam)} ${catRow('🛒 Sembako', sembako.malam)}
-                ${days ? '<div style="font-weight:700;margin-top:8px;">📅 Per Hari</div>' + days : ''}
-                <div class="report-total" style="color:var(--primary);font-size:15px;">💰 Total: ${formatRupiah(r.total||0)}</div>
-            </div>`;
-        }
-        
-        function openModal(id) {
-            document.getElementById(id).classList.add('show');
-            if (id === 'productModal') populateSelects();
-            if (id === 'reportModal') loadReport();
-        }
-        function closeModal(id) { document.getElementById(id).classList.remove('show'); }
-        
-        function toast(msg, isErr = false) {
-            const el = document.createElement('div');
-            el.className = 'toast' + (isErr ? ' err' : '');
-            el.textContent = msg;
-            document.getElementById('toastContainer').appendChild(el);
-            setTimeout(() => { el.style.opacity = '0'; el.style.transition = '0.3s'; setTimeout(() => el.remove(), 300); }, 2000);
-        }
-        
-        function showLoading() { document.getElementById('loading').classList.add('show'); }
-        function hideLoading() { document.getElementById('loading').classList.remove('show'); }
-        
-        document.addEventListener('click', e => { if (e.target.classList.contains('modal')) e.target.classList.remove('show'); });
     </script>
 </body>
 </html>
