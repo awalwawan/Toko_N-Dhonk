@@ -822,406 +822,515 @@
         <span style="color:var(--text-muted);">Memproses...</span>
     </div>
 
-    <script>
-        // ⚠️ GANTI DENGAN URL DEPLOYMENT ANDA!
-        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby0mpLoFPYZe5Yp_YMkrJAXSOhHPM1X-WA5Hgq5ciPCl1osy9WUs_LKu3k0mqt6EsLG/exec';
+   <script>
+    // ⚠️ GANTI DENGAN URL DEPLOYMENT ANDA!
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby0mpLoFPYZe5Yp_YMkrJAXSOhHPM1X-WA5Hgq5ciPCl1osy9WUs_LKu3k0mqt6EsLG/exec';
+    
+    let products = [];
+    let cart = [];
+    let currentFilter = 'Semua';
+    let paymentMethod = 'Tunai';
+
+    // Init
+    document.addEventListener('DOMContentLoaded', () => {
+        setDefaultDates();
+        updateClock();
+        setInterval(updateClock, 30000);
+        checkConnection();
+        loadProducts();
+    });
+
+    function setDefaultDates() {
+        const now = new Date();
+        const today = now.toISOString().split('T')[0];
+        document.getElementById('reportDate').value = today;
+        document.getElementById('reportMonth').value = today.slice(0,7);
+    }
+
+    function updateClock() {
+        const now = new Date();
+        const h = now.getHours();
+        const m = now.getMinutes().toString().padStart(2,'0');
+        document.getElementById('currentTime').textContent = `${h}:${m}`;
         
-        let products = [];
-        let cart = [];
-        let currentFilter = 'Semua';
-        let paymentMethod = 'Tunai';
+        const badge = document.getElementById('sessionBadge');
+        if (h >= 6 && h < 17) {
+            badge.textContent = '🌅 PAGI';
+            badge.className = 'session-badge pagi';
+        } else {
+            badge.textContent = '🌙 MALAM';
+            badge.className = 'session-badge malam';
+        }
+    }
 
-        // Init
-        document.addEventListener('DOMContentLoaded', () => {
-            setDefaultDates();
-            updateClock();
-            setInterval(updateClock, 30000);
-            checkConnection();
-            loadProducts();
+    // API Calls - DIPERBAIKI
+    async function callAPI(action, data = null, extraParams = '') {
+        try {
+            let url = `${SCRIPT_URL}?action=${action}${extraParams}`;
+            let options = { 
+                method: 'GET',
+                headers: { 'Accept': 'application/json' }
+            };
+            
+            if (data) {
+                options.method = 'POST';
+                options.body = JSON.stringify(data);
+                options.headers['Content-Type'] = 'application/json';
+            }
+            
+            console.log('Fetching:', url, options.method);
+            const response = await fetch(url, options);
+            const result = await response.json();
+            console.log('Response:', result);
+            return result;
+        } catch (error) {
+            console.error('API Error:', error);
+            return { success: false, message: 'Gagal terhubung: ' + error.message };
+        }
+    }
+
+    function checkConnection() {
+        const dot = document.getElementById('statusDot');
+        const text = document.getElementById('statusText');
+        
+        text.textContent = 'Menghubungkan...';
+        
+        callAPI('checkConnection').then(res => {
+            console.log('Connection check:', res);
+            if (res && res.connected) {
+                dot.classList.remove('offline');
+                text.textContent = 'Online';
+            } else {
+                dot.classList.add('offline');
+                text.textContent = 'Offline';
+                // Coba lagi setelah 3 detik
+                setTimeout(checkConnection, 3000);
+            }
+        }).catch(err => {
+            console.error('Connection error:', err);
+            dot.classList.add('offline');
+            text.textContent = 'Offline';
+            setTimeout(checkConnection, 3000);
         });
+    }
 
-        function setDefaultDates() {
-            const now = new Date();
-            document.getElementById('reportDate').value = now.toISOString().split('T')[0];
-            document.getElementById('reportMonth').value = now.toISOString().slice(0,7);
-        }
-
-        function updateClock() {
-            const now = new Date();
-            const h = now.getHours();
-            const m = now.getMinutes().toString().padStart(2,'0');
-            document.getElementById('currentTime').textContent = `${h}:${m}`;
-            
-            const badge = document.getElementById('sessionBadge');
-            if (h >= 6 && h < 17) {
-                badge.textContent = '🌅 PAGI';
-                badge.className = 'session-badge pagi';
+    function loadProducts() {
+        showLoading();
+        callAPI('getAllProducts').then(data => {
+            hideLoading();
+            console.log('Products loaded:', data);
+            if (Array.isArray(data)) {
+                products = data;
             } else {
-                badge.textContent = '🌙 MALAM';
-                badge.className = 'session-badge malam';
+                products = [];
+                console.warn('Invalid products data:', data);
             }
-        }
-
-        // API Calls
-        async function callAPI(action, data = null) {
-            try {
-                let url = `${SCRIPT_URL}?action=${action}`;
-                let options = { method: 'GET' };
-                
-                if (data) {
-                    options.method = 'POST';
-                    options.body = JSON.stringify(data);
-                    options.headers = { 'Content-Type': 'application/json' };
-                }
-                
-                const response = await fetch(url, options);
-                const result = await response.json();
-                return result;
-            } catch (error) {
-                return { success: false, message: 'Gagal terhubung ke server' };
-            }
-        }
-
-        function checkConnection() {
-            const dot = document.getElementById('statusDot');
-            const text = document.getElementById('statusText');
-            
-            callAPI('checkConnection').then(res => {
-                if (res.connected) {
-                    dot.classList.remove('offline');
-                    text.textContent = 'Online';
-                } else {
-                    dot.classList.add('offline');
-                    text.textContent = 'Offline';
-                }
-            });
-        }
-
-        function loadProducts() {
-            showLoading();
-            callAPI('getAllProducts').then(data => {
-                hideLoading();
-                if (Array.isArray(data)) {
-                    products = data;
-                } else {
-                    products = [];
-                }
-                renderProducts();
-            });
-        }
-
-        function renderProducts() {
-            const grid = document.getElementById('productsGrid');
-            let filtered = currentFilter === 'Semua' ? products : products.filter(p => p.category === currentFilter);
-            
-            if (filtered.length === 0) {
-                grid.innerHTML = `
-                    <div class="empty-state" style="grid-column: 1 / -1;">
-                        <i class="fas fa-box-open"></i>
-                        <h3>Belum Ada Produk</h3>
-                        <p>Tambahkan produk melalui menu Kelola Produk</p>
-                    </div>
-                `;
-                return;
-            }
-
-            const emojis = { 'Nasi Kuning': '🍚', 'Lauk': '🍗', 'Sembako': '🛒' };
-            
-            grid.innerHTML = filtered.map(p => `
-                <div class="product-card" onclick="addToCart('${p.id}', '${p.name}', ${p.price}, '${p.category}')">
-                    <span class="product-cat">${p.category}</span>
-                    <span class="product-emoji">${emojis[p.category] || '📦'}</span>
-                    <div class="product-name">${p.name}</div>
-                    <div class="product-price">Rp ${p.price.toLocaleString('id-ID')}</div>
-                </div>
-            `).join('');
-        }
-
-        function filterCategory(cat, el) {
-            currentFilter = cat;
-            document.querySelectorAll('.cat-pill').forEach(b => b.classList.remove('active'));
-            el.classList.add('active');
             renderProducts();
-        }
+        }).catch(err => {
+            hideLoading();
+            console.error('Load products error:', err);
+            showToast('❌ Gagal memuat produk!', 'error');
+        });
+    }
 
-        // Cart
-        function addToCart(id, name, price, category) {
-            const existing = cart.find(i => i.id === id);
-            if (existing) {
-                existing.qty++;
-            } else {
-                cart.push({ id, name, price, category, qty: 1 });
-            }
-            updateCart();
-            showToast(`✅ ${name} ditambahkan`, 'success');
-        }
-
-        function removeFromCart(index) {
-            cart.splice(index, 1);
-            updateCart();
-        }
-
-        function clearCart() {
-            cart = [];
-            updateCart();
-            showToast('🗑️ Keranjang dikosongkan', 'info');
-        }
-
-        function updateCart() {
-            const chips = document.getElementById('cartChips');
-            const total = document.getElementById('cartTotal');
-            const btn = document.getElementById('btnCheckout');
-
-            if (cart.length === 0) {
-                chips.innerHTML = '<div class="cart-empty">🛒 Keranjang kosong</div>';
-                total.textContent = 'Rp 0';
-                btn.disabled = true;
-                return;
-            }
-
-            chips.innerHTML = cart.map((item, i) => `
-                <div class="cart-chip">
-                    ${item.name} ×${item.qty}
-                    <span class="remove" onclick="event.stopPropagation(); removeFromCart(${i})">×</span>
-                </div>
-            `).join('');
-
-            const sum = cart.reduce((s, i) => s + (i.price * i.qty), 0);
-            total.textContent = 'Rp ' + sum.toLocaleString('id-ID');
-            btn.disabled = false;
-        }
-
-        // Payment
-        function openPayment() {
-            if (cart.length === 0) return;
-            const sum = cart.reduce((s, i) => s + (i.price * i.qty), 0);
-            document.getElementById('paymentAmount').textContent = 'Rp ' + sum.toLocaleString('id-ID');
-            paymentMethod = 'Tunai';
-            document.querySelectorAll('.pay-option').forEach((el, i) => {
-                el.classList.toggle('active', i === 0);
-            });
-            openModal('paymentModal');
-        }
-
-        function selectPayment(method, el) {
-            paymentMethod = method;
-            document.querySelectorAll('.pay-option').forEach(o => o.classList.remove('active'));
-            el.classList.add('active');
-        }
-
-        function processPayment() {
-            closeModal('paymentModal');
-            showLoading();
-            
-            const total = cart.reduce((s, i) => s + (i.price * i.qty), 0);
-            
-            callAPI('saveTransaction', {
-                items: cart.map(i => ({
-                    id: i.id, name: i.name, category: i.category,
-                    price: i.price, quantity: i.qty
-                })),
-                total: total,
-                paymentMethod: paymentMethod
-            }).then(res => {
-                hideLoading();
-                if (res.success) {
-                    cart = [];
-                    updateCart();
-                    showToast(res.message, 'success');
-                } else {
-                    showToast('❌ Transaksi gagal!', 'error');
-                }
-            });
-        }
-
-        // Product Management
-        function addProduct() {
-            const name = document.getElementById('prodName').value.trim();
-            const category = document.getElementById('prodCategory').value;
-            const price = document.getElementById('prodPrice').value;
-
-            if (!name || !price) return showToast('⚠️ Isi semua field!', 'error');
-
-            showLoading();
-            callAPI('addNewProduct', { name, category, price: parseInt(price) }).then(res => {
-                hideLoading();
-                if (res.success) {
-                    showToast(res.message, 'success');
-                    document.getElementById('prodName').value = '';
-                    document.getElementById('prodPrice').value = '';
-                    loadProducts();
-                    populateProductSelects();
-                } else {
-                    showToast(res.message || 'Gagal menambah produk', 'error');
-                }
-            });
-        }
-
-        function updatePrice() {
-            const id = document.getElementById('updateProduct').value;
-            const price = document.getElementById('newPrice').value;
-            if (!price) return showToast('⚠️ Masukkan harga baru!', 'error');
-
-            showLoading();
-            callAPI('updateProductPrice', { productId: id, newPrice: parseInt(price) }).then(res => {
-                hideLoading();
-                if (res.success) {
-                    showToast(res.message, 'success');
-                    document.getElementById('newPrice').value = '';
-                    loadProducts();
-                } else {
-                    showToast(res.message || 'Gagal update harga', 'error');
-                }
-            });
-        }
-
-        function removeProduct() {
-            const id = document.getElementById('deleteProduct').value;
-            if (!confirm('Nonaktifkan produk ini?')) return;
-
-            showLoading();
-            callAPI('deleteProduct', { productId: id }).then(res => {
-                hideLoading();
-                if (res.success) {
-                    showToast(res.message, 'success');
-                    loadProducts();
-                    populateProductSelects();
-                }
-            });
-        }
-
-        function populateProductSelects() {
-            callAPI('getAllProducts').then(data => {
-                if (!Array.isArray(data)) return;
-                const opts = data.map(p => `<option value="${p.id}">${p.name} - Rp ${p.price.toLocaleString('id-ID')}</option>`).join('');
-                document.getElementById('updateProduct').innerHTML = opts;
-                document.getElementById('deleteProduct').innerHTML = opts;
-            });
-        }
-
-        // Reports
-        function switchReportType() {
-            const type = document.getElementById('reportType').value;
-            document.getElementById('dailyDateGroup').style.display = type === 'daily' ? 'block' : 'none';
-            document.getElementById('monthlyDateGroup').style.display = type === 'monthly' ? 'block' : 'none';
-            loadReport();
-        }
-
-        function loadReport() {
-            const type = document.getElementById('reportType').value;
-            const content = document.getElementById('reportContent');
-            
-            if (type === 'daily') {
-                const date = document.getElementById('reportDate').value;
-                if (!date) return;
-                showLoading();
-                callAPI('getDailyReport', null, { date }).then(data => {
-                    // Fix: append date to URL
-                    fetch(`${SCRIPT_URL}?action=getDailyReport&date=${date}`)
-                        .then(r => r.json())
-                        .then(report => {
-                            hideLoading();
-                            displayDailyReport(report);
-                        });
-                });
-            } else {
-                const monthVal = document.getElementById('reportMonth').value;
-                if (!monthVal) return;
-                const [year, month] = monthVal.split('-');
-                showLoading();
-                fetch(`${SCRIPT_URL}?action=getMonthlyReport&month=${month}&year=${year}`)
-                    .then(r => r.json())
-                    .then(report => {
-                        hideLoading();
-                        displayMonthlyReport(report);
-                    });
-            }
-        }
-
-        function displayDailyReport(r) {
-            const content = document.getElementById('reportContent');
-            const mTotal = r.morning.nasiKuning + r.morning.lauk + r.morning.sembako;
-            const eTotal = r.evening.nasiKuning + r.evening.lauk + r.evening.sembako;
-            
-            content.innerHTML = `
-                <div class="report-card">
-                    <h4>📅 ${r.date}</h4>
-                    <h4 class="badge-pagi">🌅 Pagi (${r.morning.totalTrans || 0} transaksi)</h4>
-                    <div class="report-row"><span>🍚 Nasi Kuning</span><span>Rp ${r.morning.nasiKuning.toLocaleString('id-ID')}</span></div>
-                    <div class="report-row"><span>🍗 Lauk</span><span>Rp ${r.morning.lauk.toLocaleString('id-ID')}</span></div>
-                    <div class="report-row"><span>🛒 Sembako</span><span>Rp ${r.morning.sembako.toLocaleString('id-ID')}</span></div>
-                    <div class="report-total">Subtotal Pagi: Rp ${mTotal.toLocaleString('id-ID')}</div>
-                    
-                    <h4 class="badge-malam" style="margin-top:12px;">🌙 Malam (${r.evening.totalTrans || 0} transaksi)</h4>
-                    <div class="report-row"><span>🍚 Nasi Kuning</span><span>Rp ${r.evening.nasiKuning.toLocaleString('id-ID')}</span></div>
-                    <div class="report-row"><span>🍗 Lauk</span><span>Rp ${r.evening.lauk.toLocaleString('id-ID')}</span></div>
-                    <div class="report-row"><span>🛒 Sembako</span><span>Rp ${r.evening.sembako.toLocaleString('id-ID')}</span></div>
-                    <div class="report-total">Subtotal Malam: Rp ${eTotal.toLocaleString('id-ID')}</div>
-                    
-                    <div class="report-total grand-total">💰 Total: Rp ${r.total.toLocaleString('id-ID')}</div>
+    function renderProducts() {
+        const grid = document.getElementById('productsGrid');
+        let filtered = currentFilter === 'Semua' ? products : products.filter(p => p.category === currentFilter);
+        
+        if (filtered.length === 0) {
+            grid.innerHTML = `
+                <div class="empty-state" style="grid-column: 1 / -1;">
+                    <i class="fas fa-box-open"></i>
+                    <h3>Belum Ada Produk</h3>
+                    <p>Tambahkan produk melalui menu Kelola Produk</p>
+                    <button class="btn btn-primary" style="width:auto; padding:12px 24px;" onclick="openModal('productModal')">
+                        <i class="fas fa-plus"></i> Tambah Produk
+                    </button>
                 </div>
             `;
+            return;
         }
 
-        function displayMonthlyReport(r) {
-            const content = document.getElementById('reportContent');
-            let daysHtml = '';
+        const emojis = { 'Nasi Kuning': '🍚', 'Lauk': '🍗', 'Sembako': '🛒' };
+        
+        grid.innerHTML = filtered.map(p => `
+            <div class="product-card" onclick="addToCart('${p.id}', '${p.name.replace(/'/g, "\\'")}', ${p.price}, '${p.category}')">
+                <span class="product-cat">${p.category}</span>
+                <span class="product-emoji">${emojis[p.category] || '📦'}</span>
+                <div class="product-name">${p.name}</div>
+                <div class="product-price">Rp ${p.price.toLocaleString('id-ID')}</div>
+            </div>
+        `).join('');
+    }
+
+    function filterCategory(cat, el) {
+        currentFilter = cat;
+        document.querySelectorAll('.cat-pill').forEach(b => b.classList.remove('active'));
+        el.classList.add('active');
+        renderProducts();
+    }
+
+    // Cart
+    function addToCart(id, name, price, category) {
+        const existing = cart.find(i => i.id === id);
+        if (existing) {
+            existing.qty++;
+        } else {
+            cart.push({ id, name, price, category, qty: 1 });
+        }
+        updateCart();
+        showToast(`✅ ${name} ditambahkan`, 'success');
+    }
+
+    function removeFromCart(index) {
+        const item = cart[index];
+        cart.splice(index, 1);
+        updateCart();
+        showToast(`❌ ${item.name} dihapus`, 'info');
+    }
+
+    function clearCart() {
+        if (cart.length === 0) return;
+        cart = [];
+        updateCart();
+        showToast('🗑️ Keranjang dikosongkan', 'info');
+    }
+
+    function updateCart() {
+        const chips = document.getElementById('cartChips');
+        const total = document.getElementById('cartTotal');
+        const btn = document.getElementById('btnCheckout');
+
+        if (cart.length === 0) {
+            chips.innerHTML = '<div class="cart-empty">🛒 Keranjang kosong</div>';
+            total.textContent = 'Rp 0';
+            btn.disabled = true;
+            return;
+        }
+
+        chips.innerHTML = cart.map((item, i) => `
+            <div class="cart-chip">
+                ${item.name} ×${item.qty}
+                <span class="remove" onclick="event.stopPropagation(); removeFromCart(${i})">×</span>
+            </div>
+        `).join('');
+
+        const sum = cart.reduce((s, i) => s + (i.price * i.qty), 0);
+        total.textContent = 'Rp ' + sum.toLocaleString('id-ID');
+        btn.disabled = false;
+    }
+
+    // Payment
+    function openPayment() {
+        if (cart.length === 0) return;
+        const sum = cart.reduce((s, i) => s + (i.price * i.qty), 0);
+        document.getElementById('paymentAmount').textContent = 'Rp ' + sum.toLocaleString('id-ID');
+        paymentMethod = 'Tunai';
+        document.querySelectorAll('.pay-option').forEach((el, i) => {
+            el.classList.toggle('active', i === 0);
+        });
+        openModal('paymentModal');
+    }
+
+    function selectPayment(method, el) {
+        paymentMethod = method;
+        document.querySelectorAll('.pay-option').forEach(o => o.classList.remove('active'));
+        el.classList.add('active');
+    }
+
+    function processPayment() {
+        closeModal('paymentModal');
+        showLoading();
+        
+        const total = cart.reduce((s, i) => s + (i.price * i.qty), 0);
+        
+        const transactionData = {
+            items: cart.map(i => ({
+                id: i.id, 
+                name: i.name, 
+                category: i.category,
+                price: i.price, 
+                quantity: i.qty
+            })),
+            total: total,
+            paymentMethod: paymentMethod
+        };
+        
+        console.log('Sending transaction:', transactionData);
+        
+        callAPI('saveTransaction', transactionData).then(res => {
+            hideLoading();
+            console.log('Transaction result:', res);
+            if (res.success) {
+                cart = [];
+                updateCart();
+                showToast(res.message || '✅ Transaksi berhasil!', 'success');
+            } else {
+                showToast('❌ ' + (res.message || 'Transaksi gagal!'), 'error');
+            }
+        }).catch(err => {
+            hideLoading();
+            console.error('Transaction error:', err);
+            showToast('❌ Gagal menyimpan transaksi!', 'error');
+        });
+    }
+
+    // Product Management
+    function addProduct() {
+        const name = document.getElementById('prodName').value.trim();
+        const category = document.getElementById('prodCategory').value;
+        const price = document.getElementById('prodPrice').value;
+
+        if (!name || !price) {
+            showToast('⚠️ Isi semua field!', 'error');
+            return;
+        }
+
+        showLoading();
+        console.log('Adding product:', { name, category, price: parseInt(price) });
+        
+        callAPI('addNewProduct', { 
+            name: name, 
+            category: category, 
+            price: parseInt(price) 
+        }).then(res => {
+            hideLoading();
+            console.log('Add product result:', res);
+            if (res.success) {
+                showToast(res.message, 'success');
+                document.getElementById('prodName').value = '';
+                document.getElementById('prodPrice').value = '';
+                loadProducts();
+                populateProductSelects();
+            } else {
+                showToast('❌ ' + (res.message || 'Gagal menambah produk'), 'error');
+            }
+        }).catch(err => {
+            hideLoading();
+            console.error('Add product error:', err);
+            showToast('❌ Gagal menambah produk!', 'error');
+        });
+    }
+
+    function updatePrice() {
+        const id = document.getElementById('updateProduct').value;
+        const price = document.getElementById('newPrice').value;
+        
+        if (!id || !price) {
+            showToast('⚠️ Pilih produk dan masukkan harga baru!', 'error');
+            return;
+        }
+
+        showLoading();
+        callAPI('updateProductPrice', { 
+            productId: id, 
+            newPrice: parseInt(price) 
+        }).then(res => {
+            hideLoading();
+            if (res.success) {
+                showToast(res.message, 'success');
+                document.getElementById('newPrice').value = '';
+                loadProducts();
+                populateProductSelects();
+            } else {
+                showToast('❌ ' + (res.message || 'Gagal update harga'), 'error');
+            }
+        });
+    }
+
+    function removeProduct() {
+        const id = document.getElementById('deleteProduct').value;
+        if (!id) return;
+        if (!confirm('Nonaktifkan produk ini?')) return;
+
+        showLoading();
+        callAPI('deleteProduct', { productId: id }).then(res => {
+            hideLoading();
+            if (res.success) {
+                showToast(res.message, 'success');
+                loadProducts();
+                populateProductSelects();
+            } else {
+                showToast('❌ Gagal menghapus produk', 'error');
+            }
+        });
+    }
+
+    function populateProductSelects() {
+        callAPI('getAllProducts').then(data => {
+            if (!Array.isArray(data) || data.length === 0) {
+                document.getElementById('updateProduct').innerHTML = '<option value="">-- Tidak ada produk --</option>';
+                document.getElementById('deleteProduct').innerHTML = '<option value="">-- Tidak ada produk --</option>';
+                return;
+            }
+            const opts = data.map(p => 
+                `<option value="${p.id}">${p.name} - Rp ${p.price.toLocaleString('id-ID')}</option>`
+            ).join('');
+            document.getElementById('updateProduct').innerHTML = opts;
+            document.getElementById('deleteProduct').innerHTML = opts;
+        });
+    }
+
+    // Reports - DIPERBAIKI
+    function switchReportType() {
+        const type = document.getElementById('reportType').value;
+        document.getElementById('dailyDateGroup').style.display = type === 'daily' ? 'block' : 'none';
+        document.getElementById('monthlyDateGroup').style.display = type === 'monthly' ? 'block' : 'none';
+        loadReport();
+    }
+
+    function loadReport() {
+        const type = document.getElementById('reportType').value;
+        const content = document.getElementById('reportContent');
+        
+        showLoading();
+        
+        if (type === 'daily') {
+            const date = document.getElementById('reportDate').value;
+            if (!date) {
+                hideLoading();
+                return;
+            }
+            
+            // Gunakan extraParams untuk GET request
+            callAPI('getDailyReport', null, `&date=${date}`).then(report => {
+                hideLoading();
+                console.log('Daily report:', report);
+                displayDailyReport(report);
+            }).catch(err => {
+                hideLoading();
+                console.error('Report error:', err);
+                content.innerHTML = '<p style="color:var(--danger);">❌ Gagal memuat laporan</p>';
+            });
+            
+        } else {
+            const monthVal = document.getElementById('reportMonth').value;
+            if (!monthVal) {
+                hideLoading();
+                return;
+            }
+            const [year, month] = monthVal.split('-');
+            
+            callAPI('getMonthlyReport', null, `&month=${month}&year=${year}`).then(report => {
+                hideLoading();
+                console.log('Monthly report:', report);
+                displayMonthlyReport(report);
+            }).catch(err => {
+                hideLoading();
+                console.error('Report error:', err);
+                content.innerHTML = '<p style="color:var(--danger);">❌ Gagal memuat laporan</p>';
+            });
+        }
+    }
+
+    function displayDailyReport(r) {
+        const content = document.getElementById('reportContent');
+        
+        if (!r || r.total === undefined) {
+            content.innerHTML = '<p style="color:var(--text-muted);">Tidak ada data untuk tanggal ini</p>';
+            return;
+        }
+        
+        const mTotal = (r.morning?.nasiKuning || 0) + (r.morning?.lauk || 0) + (r.morning?.sembako || 0);
+        const eTotal = (r.evening?.nasiKuning || 0) + (r.evening?.lauk || 0) + (r.evening?.sembako || 0);
+        
+        content.innerHTML = `
+            <div class="report-card">
+                <h4>📅 ${r.date}</h4>
+                <h4 class="badge-pagi">🌅 Pagi (${r.morning?.transactions || 0} transaksi)</h4>
+                <div class="report-row"><span>🍚 Nasi Kuning</span><span>Rp ${(r.morning?.nasiKuning || 0).toLocaleString('id-ID')}</span></div>
+                <div class="report-row"><span>🍗 Lauk</span><span>Rp ${(r.morning?.lauk || 0).toLocaleString('id-ID')}</span></div>
+                <div class="report-row"><span>🛒 Sembako</span><span>Rp ${(r.morning?.sembako || 0).toLocaleString('id-ID')}</span></div>
+                <div class="report-total">Subtotal Pagi: Rp ${mTotal.toLocaleString('id-ID')}</div>
+                
+                <h4 class="badge-malam" style="margin-top:12px;">🌙 Malam (${r.evening?.transactions || 0} transaksi)</h4>
+                <div class="report-row"><span>🍚 Nasi Kuning</span><span>Rp ${(r.evening?.nasiKuning || 0).toLocaleString('id-ID')}</span></div>
+                <div class="report-row"><span>🍗 Lauk</span><span>Rp ${(r.evening?.lauk || 0).toLocaleString('id-ID')}</span></div>
+                <div class="report-row"><span>🛒 Sembako</span><span>Rp ${(r.evening?.sembako || 0).toLocaleString('id-ID')}</span></div>
+                <div class="report-total">Subtotal Malam: Rp ${eTotal.toLocaleString('id-ID')}</div>
+                
+                <div class="report-total grand-total">💰 Total: Rp ${(r.total || 0).toLocaleString('id-ID')}</div>
+            </div>
+        `;
+    }
+
+    function displayMonthlyReport(r) {
+        const content = document.getElementById('reportContent');
+        
+        if (!r || r.total === undefined) {
+            content.innerHTML = '<p style="color:var(--text-muted);">Tidak ada data untuk bulan ini</p>';
+            return;
+        }
+        
+        let daysHtml = '';
+        if (r.dailyBreakdown) {
             Object.keys(r.dailyBreakdown).sort().forEach(day => {
                 const d = r.dailyBreakdown[day];
-                daysHtml += `<div class="report-row"><span>📅 Tgl ${day} (${d.totalTrans || 0} trx)</span><span>Rp ${d.total.toLocaleString('id-ID')}</span></div>`;
+                daysHtml += `<div class="report-row"><span>📅 Tgl ${day}</span><span>Rp ${(d.total || 0).toLocaleString('id-ID')}</span></div>`;
             });
-
-            content.innerHTML = `
-                <div class="report-card">
-                    <h4>📆 Bulan ${r.month}/${r.year}</h4>
-                    <h4 class="badge-pagi">🌅 Pagi</h4>
-                    <div class="report-row"><span>🍚 Nasi Kuning</span><span>Rp ${r.categoryBreakdown['Nasi Kuning'].morning.toLocaleString('id-ID')}</span></div>
-                    <div class="report-row"><span>🍗 Lauk</span><span>Rp ${r.categoryBreakdown['Lauk'].morning.toLocaleString('id-ID')}</span></div>
-                    <div class="report-row"><span>🛒 Sembako</span><span>Rp ${r.categoryBreakdown['Sembako'].morning.toLocaleString('id-ID')}</span></div>
-                    
-                    <h4 class="badge-malam" style="margin-top:12px;">🌙 Malam</h4>
-                    <div class="report-row"><span>🍚 Nasi Kuning</span><span>Rp ${r.categoryBreakdown['Nasi Kuning'].evening.toLocaleString('id-ID')}</span></div>
-                    <div class="report-row"><span>🍗 Lauk</span><span>Rp ${r.categoryBreakdown['Lauk'].evening.toLocaleString('id-ID')}</span></div>
-                    <div class="report-row"><span>🛒 Sembako</span><span>Rp ${r.categoryBreakdown['Sembako'].evening.toLocaleString('id-ID')}</span></div>
-                    
-                    ${daysHtml ? '<h4 style="margin-top:12px;">📅 Per Hari</h4>' + daysHtml : ''}
-                    
-                    <div class="report-total grand-total">💰 Total: Rp ${r.total.toLocaleString('id-ID')}</div>
-                </div>
-            `;
         }
 
-        // UI Helpers
-        function openModal(id) {
-            document.getElementById(id).classList.add('show');
-            if (id === 'productModal') populateProductSelects();
-            if (id === 'reportModal') loadReport();
+        const cat = r.categoryBreakdown || {};
+        
+        content.innerHTML = `
+            <div class="report-card">
+                <h4>📆 Bulan ${r.month}/${r.year}</h4>
+                <h4 class="badge-pagi">🌅 Pagi</h4>
+                <div class="report-row"><span>🍚 Nasi Kuning</span><span>Rp ${(cat['Nasi Kuning']?.morning || 0).toLocaleString('id-ID')}</span></div>
+                <div class="report-row"><span>🍗 Lauk</span><span>Rp ${(cat['Lauk']?.morning || 0).toLocaleString('id-ID')}</span></div>
+                <div class="report-row"><span>🛒 Sembako</span><span>Rp ${(cat['Sembako']?.morning || 0).toLocaleString('id-ID')}</span></div>
+                
+                <h4 class="badge-malam" style="margin-top:12px;">🌙 Malam</h4>
+                <div class="report-row"><span>🍚 Nasi Kuning</span><span>Rp ${(cat['Nasi Kuning']?.evening || 0).toLocaleString('id-ID')}</span></div>
+                <div class="report-row"><span>🍗 Lauk</span><span>Rp ${(cat['Lauk']?.evening || 0).toLocaleString('id-ID')}</span></div>
+                <div class="report-row"><span>🛒 Sembako</span><span>Rp ${(cat['Sembako']?.evening || 0).toLocaleString('id-ID')}</span></div>
+                
+                ${daysHtml ? '<h4 style="margin-top:12px;">📅 Per Hari</h4>' + daysHtml : ''}
+                
+                <div class="report-total grand-total">💰 Total: Rp ${(r.total || 0).toLocaleString('id-ID')}</div>
+            </div>
+        `;
+    }
+
+    // UI Helpers
+    function openModal(id) {
+        document.getElementById(id).classList.add('show');
+        if (id === 'productModal') populateProductSelects();
+        if (id === 'reportModal') loadReport();
+    }
+
+    function closeModal(id) {
+        document.getElementById(id).classList.remove('show');
+    }
+
+    function showToast(msg, type) {
+        const container = document.getElementById('toastContainer');
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        toast.textContent = msg;
+        container.appendChild(toast);
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateY(-20px)';
+            toast.style.transition = 'all 0.3s ease';
+            setTimeout(() => toast.remove(), 300);
+        }, 2500);
+    }
+
+    function showLoading() { 
+        document.getElementById('loadingScreen').classList.add('show'); 
+    }
+    
+    function hideLoading() { 
+        document.getElementById('loadingScreen').classList.remove('show'); 
+    }
+
+    // Close modal on overlay click
+    document.addEventListener('click', (e) => {
+        if (e.target.classList.contains('modal-overlay')) {
+            e.target.classList.remove('show');
         }
-
-        function closeModal(id) {
-            document.getElementById(id).classList.remove('show');
-        }
-
-        function showToast(msg, type) {
-            const container = document.getElementById('toastContainer');
-            const toast = document.createElement('div');
-            toast.className = `toast ${type}`;
-            toast.textContent = msg;
-            container.appendChild(toast);
-            setTimeout(() => {
-                toast.style.animation = 'slideIn 0.3s ease reverse';
-                setTimeout(() => toast.remove(), 300);
-            }, 2500);
-        }
-
-        function showLoading() { document.getElementById('loadingScreen').classList.add('show'); }
-        function hideLoading() { document.getElementById('loadingScreen').classList.remove('show'); }
-
-        document.addEventListener('click', (e) => {
-            if (e.target.classList.contains('modal-overlay')) {
-                e.target.classList.remove('show');
-            }
-        });
-    </script>
+    });
+</script>
 </body>
 </html>
