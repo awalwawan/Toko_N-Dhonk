@@ -1,709 +1,357 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>TOKO N-Dhonk POS</title>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --bg: #0f172a; --card: #1e293b; --border: #334155;
-            --primary: #38bdf8; --text: #f1f5f9; --muted: #94a3b8;
-            --success: #34d399; --danger: #f87171; --warning: #fbbf24;
-        }
-        * { margin:0; padding:0; box-sizing:border-box; }
-        body { font-family:'Plus Jakarta Sans',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; overflow-x:hidden; }
-        
-        .app { max-width:480px; margin:0 auto; min-height:100vh; display:flex; flex-direction:column; }
-        
-        .topbar { background:var(--card); padding:8px 12px; display:flex; justify-content:space-between; align-items:center; font-size:11px; position:sticky; top:0; z-index:100; border-bottom:1px solid var(--border); }
-        .dot { width:7px; height:7px; border-radius:50%; background:var(--success); display:inline-block; margin-right:5px; }
-        .dot.off { background:var(--danger); }
-        .session { padding:4px 10px; border-radius:15px; font-weight:700; font-size:10px; }
-        .session.pagi { background:#fbbf24; color:#000; }
-        .session.malam { background:#6366f1; color:#fff; }
-        
-        .header { padding:12px; display:flex; align-items:center; gap:10px; }
-        .logo { width:40px; height:40px; background:linear-gradient(135deg,#0ea5e9,#8b5cf6); border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:20px; }
-        .header h1 { font-size:16px; font-weight:800; }
-        .header p { font-size:9px; color:var(--muted); }
-        .hbtn { width:34px; height:34px; border-radius:10px; border:1px solid var(--border); background:var(--card); color:var(--text); font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; margin-left:4px; }
-        
-        .tabs { padding:6px 10px; display:flex; gap:5px; overflow-x:auto; }
-        .tab { padding:7px 12px; border-radius:18px; border:1px solid var(--border); background:transparent; color:var(--muted); font-weight:600; font-size:11px; cursor:pointer; white-space:nowrap; flex-shrink:0; }
-        .tab.active { background:linear-gradient(135deg,#0ea5e9,#8b5cf6); color:#fff; border-color:transparent; }
-        
-        .main-content { flex:1; overflow-y:auto; padding-bottom:160px; }
-        
-        .cat-title { font-size:11px; font-weight:700; margin:8px 10px 4px; padding:5px 8px; border-radius:6px; display:flex; align-items:center; gap:4px; }
-        .cat-nk { background:rgba(245,158,11,0.15); color:#f59e0b; }
-        .cat-lauk { background:rgba(239,68,68,0.15); color:#ef4444; }
-        .cat-sembako { background:rgba(139,92,246,0.15); color:#8b5cf6; }
-        
-        .product-list { padding:0 10px; display:flex; flex-wrap:wrap; gap:6px; }
-        .product-card { background:var(--card); border:1px solid var(--border); border-radius:8px; padding:10px 12px; cursor:pointer; font-weight:600; font-size:12px; min-width:calc(50% - 3px); flex:1; }
-        .product-card:active { border-color:var(--primary); }
-        .product-card .pcat { font-size:9px; color:var(--muted); }
-        .product-card .pname { margin:2px 0; }
-        .product-card .pprice { color:var(--primary); font-size:13px; }
-        
-        .cart { position:fixed; bottom:0; left:50%; transform:translateX(-50%); width:100%; max-width:480px; background:var(--card); border-radius:16px 16px 0 0; padding:12px; box-shadow:0 -4px 20px rgba(0,0,0,0.5); z-index:200; }
-        .cart-items { max-height:120px; overflow-y:auto; margin-bottom:8px; }
-        .cart-item { display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid rgba(51,65,85,0.5); font-size:12px; }
-        .cart-item .qty-control { display:flex; align-items:center; gap:6px; }
-        .qty-btn { width:24px; height:24px; border-radius:6px; border:1px solid var(--border); background:var(--bg); color:var(--text); font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; font-weight:700; }
-        .qty-btn:active { background:var(--primary); }
-        .cart-item .item-total { font-weight:700; min-width:70px; text-align:right; }
-        .cart-row { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; font-size:13px; }
-        .cart-total { font-weight:800; font-size:20px; color:var(--primary); }
-        .cart-actions { display:flex; gap:6px; }
-        .btn { padding:11px; border-radius:10px; border:none; font-weight:700; font-size:13px; cursor:pointer; font-family:inherit; }
-        .btn:active { transform:scale(0.97); }
-        .btn-pay { flex:1; background:linear-gradient(135deg,#0ea5e9,#8b5cf6); color:#fff; font-size:14px; }
-        .btn-pay:disabled { opacity:0.4; pointer-events:none; }
-        .btn-clr { background:transparent; border:1px solid var(--border); color:var(--danger); min-width:40px; }
-        
-        .modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:1000; justify-content:center; align-items:center; padding:12px; }
-        .modal.show { display:flex; }
-        .modal-box { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:16px; width:100%; max-width:400px; max-height:80vh; overflow-y:auto; }
-        .modal-box h3 { font-size:15px; margin-bottom:12px; }
-        .modal-close { float:right; background:none; border:none; color:var(--text); font-size:18px; cursor:pointer; }
-        .form-group { margin-bottom:10px; }
-        .form-group label { display:block; font-size:11px; color:var(--muted); margin-bottom:4px; font-weight:600; }
-        .form-group input, .form-group select { width:100%; padding:10px; border-radius:8px; border:1px solid var(--border); background:var(--bg); color:var(--text); font-size:13px; font-family:inherit; }
-        
-        .pay-opts { display:grid; grid-template-columns:1fr 1fr; gap:6px; margin:10px 0; }
-        .pay-opt { padding:14px; border:2px solid var(--border); border-radius:10px; text-align:center; cursor:pointer; font-weight:600; font-size:12px; }
-        .pay-opt.active { border-color:var(--primary); background:rgba(56,189,248,0.1); }
-        
-        .money-suggestions { display:flex; flex-wrap:wrap; gap:4px; margin:8px 0; }
-        .money-chip { padding:6px 10px; border-radius:14px; border:1px solid var(--border); background:var(--bg); color:var(--text); font-size:11px; font-weight:600; cursor:pointer; }
-        .money-chip:active { background:var(--primary); color:#fff; }
-        
-        .change-display { background:var(--bg); padding:10px; border-radius:8px; margin:8px 0; text-align:center; }
-        
-        .report-card { background:var(--bg); border:1px solid var(--border); border-radius:10px; padding:10px; margin-bottom:8px; font-size:12px; }
-        .report-row { display:flex; justify-content:space-between; padding:3px 0; font-size:11px; color:var(--muted); }
-        .report-total { font-weight:700; margin-top:6px; padding-top:6px; border-top:1px solid var(--border); }
-        
-        .detail-item { background:var(--card); border-radius:8px; padding:8px; margin-bottom:6px; font-size:11px; }
-        .detail-header { display:flex; justify-content:space-between; font-weight:700; margin-bottom:4px; }
-        
-        .toast { position:fixed; top:12px; left:50%; transform:translateX(-50%); background:var(--card); border-left:3px solid var(--success); padding:10px 14px; border-radius:8px; z-index:3000; font-size:11px; animation:slideIn 0.3s ease; }
-        .toast.err { border-color:var(--danger); }
-        @keyframes slideIn { from{opacity:0;transform:translateX(-50%) translateY(-20px);} }
-        
-        .loading { display:none; position:fixed; inset:0; background:rgba(15,23,42,0.9); z-index:4000; justify-content:center; align-items:center; }
-        .loading.show { display:flex; }
-        .spinner { width:32px; height:32px; border:3px solid var(--border); border-top-color:var(--primary); border-radius:50%; animation:spin 0.7s linear infinite; }
-        @keyframes spin { to{transform:rotate(360deg);} }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>TOKO N-Dhonk</title>
+<style>
+:root{--bg:#0f172a;--c:#1e293b;--b:#334155;--p:#38bdf8;--t:#f1f5f9;--m:#94a3b8;--s:#34d399;--d:#f87171;--w:#fbbf24}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--t);min-height:100vh}
+.app{max-width:480px;margin:0 auto;display:flex;flex-direction:column;min-height:100vh}
+.top{background:var(--c);padding:8px 12px;display:flex;justify-content:space-between;align-items:center;font-size:11px;position:sticky;top:0;z-index:99;border-bottom:1px solid var(--b)}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--s);display:inline-block;margin-right:4px}
+.dot.off{background:var(--d)}
+.ses{padding:3px 10px;border-radius:12px;font-weight:700;font-size:10px}
+.ses.pagi{background:var(--w);color:#000}
+.ses.malam{background:#6366f1;color:#fff}
+.hd{padding:10px 12px;display:flex;align-items:center;gap:8px}
+.hd .logo{width:38px;height:38px;background:linear-gradient(135deg,#0ea5e9,#8b5cf6);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px}
+.hd h1{font-size:15px;font-weight:800}
+.hd p{font-size:9px;color:var(--m)}
+.tabs{padding:6px 10px;display:flex;gap:5px;overflow-x:auto}
+.tab{padding:6px 12px;border-radius:16px;border:1px solid var(--b);background:0;color:var(--m);font-weight:600;font-size:11px;cursor:pointer;white-space:nowrap}
+.tab.on{background:linear-gradient(135deg,#0ea5e9,#8b5cf6);color:#fff;border-color:transparent}
+.main{flex:1;overflow-y:auto;padding:0 10px 170px}
+.ct{font-size:11px;font-weight:700;margin:8px 0 4px;padding:4px 8px;border-radius:5px}
+.ct.nk{background:rgba(245,158,11,.15);color:#f59e0b}
+.ct.lauk{background:rgba(239,68,68,.15);color:#ef4444}
+.ct.smb{background:rgba(139,92,246,.15);color:#8b5cf6}
+.pl{display:flex;flex-wrap:wrap;gap:5px}
+.pc{background:var(--c);border:1px solid var(--b);border-radius:8px;padding:10px;cursor:pointer;font-size:12px;min-width:calc(50% - 3px);flex:1}
+.pc:active{border-color:var(--p)}
+.pc .pn{font-weight:600;margin:2px 0}
+.pc .pp{color:var(--p);font-weight:700;font-size:13px}
+.pc .pcat{font-size:9px;color:var(--m)}
+.cart{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:var(--c);border-radius:14px 14px 0 0;padding:10px;box-shadow:0 -4px 20px rgba(0,0,0,.5);z-index:199}
+.ci{max-height:120px;overflow-y:auto;margin-bottom:6px}
+.cir{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid rgba(51,65,85,.5);font-size:11px}
+.cir .qc{display:flex;align-items:center;gap:5px}
+.qb{width:22px;height:22px;border-radius:5px;border:1px solid var(--b);background:var(--bg);color:var(--t);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:700}
+.cr{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-size:12px}
+.ctot{font-weight:800;font-size:19px;color:var(--p)}
+.ca{display:flex;gap:5px}
+.btn{padding:10px;border-radius:8px;border:none;font-weight:700;font-size:12px;cursor:pointer;font-family:inherit}
+.btn:active{transform:scale(.97)}
+.bp{flex:1;background:linear-gradient(135deg,#0ea5e9,#8b5cf6);color:#fff;font-size:13px}
+.bp:disabled{opacity:.4;pointer-events:none}
+.bc{background:0;border:1px solid var(--b);color:var(--d)}
+.mod{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:999;justify-content:center;align-items:center;padding:10px}
+.mod.on{display:flex}
+.mb{background:var(--c);border:1px solid var(--b);border-radius:12px;padding:14px;width:100%;max-width:380px;max-height:80vh;overflow-y:auto}
+.mb h3{font-size:14px;margin-bottom:10px}
+.mc{float:right;background:0;border:none;color:var(--t);font-size:16px;cursor:pointer}
+.fg{margin-bottom:8px}
+.fg label{display:block;font-size:10px;color:var(--m);margin-bottom:3px;font-weight:600}
+.fg input,.fg select{width:100%;padding:9px;border-radius:7px;border:1px solid var(--b);background:var(--bg);color:var(--t);font-size:12px;font-family:inherit}
+.pay{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin:8px 0}
+.po{padding:12px;border:2px solid var(--b);border-radius:8px;text-align:center;cursor:pointer;font-weight:600;font-size:11px}
+.po.on{border-color:var(--p);background:rgba(56,189,248,.1)}
+.ms{display:flex;flex-wrap:wrap;gap:4px;margin:6px 0}
+.mc2{padding:5px 8px;border-radius:10px;border:1px solid var(--b);background:var(--bg);color:var(--t);font-size:10px;cursor:pointer;font-weight:600}
+.chg{background:var(--bg);padding:8px;border-radius:7px;margin:6px 0;text-align:center;font-size:11px}
+.rc{background:var(--bg);border:1px solid var(--b);border-radius:8px;padding:8px;margin-bottom:6px;font-size:11px}
+.rr{display:flex;justify-content:space-between;padding:2px 0;font-size:10px;color:var(--m)}
+.rt{font-weight:700;margin-top:4px;padding-top:4px;border-top:1px solid var(--b)}
+.di{background:var(--c);border-radius:6px;padding:6px;margin-bottom:4px;font-size:10px}
+.dh{display:flex;justify-content:space-between;font-weight:700;margin-bottom:2px}
+.toast{position:fixed;top:10px;left:50%;transform:translateX(-50%);background:var(--c);border-left:3px solid var(--s);padding:8px 12px;border-radius:6px;z-index:9999;font-size:10px;animation:in .3s}
+.toast.err{border-color:var(--d)}
+@keyframes in{from{opacity:0;transform:translateX(-50%) translateY(-15px)}}
+.load{display:none;position:fixed;inset:0;background:rgba(15,23,42,.9);z-index:9999;justify-content:center;align-items:center}
+.load.on{display:flex}
+.spin{width:28px;height:28px;border:3px solid var(--b);border-top-color:var(--p);border-radius:50%;animation:sp .6s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+</style>
 </head>
 <body>
-    <div class="app">
-        <div class="topbar">
-            <div><span class="dot" id="dot"></span> <span id="statusText">Terhubung</span></div>
-            <div style="font-weight:700;" id="clock">--:--</div>
-            <div class="session pagi" id="sessionBadge">🌅 PAGI</div>
-        </div>
-        
-        <div class="header">
-            <div class="logo">🏪</div>
-            <div><h1>TOKO N-Dhonk</h1><p>Nasi Kuning · Lauk · Sembako</p></div>
-            <div style="margin-left:auto;display:flex;">
-                <button class="hbtn" onclick="openModal('reportModal')">📊</button>
-                <button class="hbtn" onclick="openModal('productModal')">📦</button>
-            </div>
-        </div>
-        
-        <div class="tabs">
-            <button class="tab active" onclick="filterCat('Semua',this)">Semua</button>
-            <button class="tab" onclick="filterCat('Nasi Kuning',this)">Nasi Kuning</button>
-            <button class="tab" onclick="filterCat('Lauk',this)">Lauk</button>
-            <button class="tab" onclick="filterCat('Sembako',this)">Sembako</button>
-        </div>
-        
-        <div class="main-content" id="productArea"></div>
-        
-        <div class="cart">
-            <div class="cart-items" id="cartItems"></div>
-            <div class="cart-row"><span>Total</span><span class="cart-total" id="cartTotal">Rp 0</span></div>
-            <div class="cart-actions">
-                <button class="btn btn-clr" onclick="clearCart()">🗑️</button>
-                <button class="btn btn-pay" id="btnPay" onclick="openPayment()" disabled>💳 Bayar</button>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Payment Modal -->
-    <div class="modal" id="paymentModal">
-        <div class="modal-box">
-            <button class="modal-close" onclick="closeModal('paymentModal')">✕</button>
-            <h3>💳 Pembayaran</h3>
-            <div class="pay-opts">
-                <div class="pay-opt active" id="payOptTunai" onclick="setPayment('Tunai',this)">💵 Tunai</div>
-                <div class="pay-opt" id="payOptQris" onclick="setPayment('QRIS',this)">📱 QRIS</div>
-            </div>
-            <div id="tunaiSection">
-                <div class="cart-row"><span>Total</span><span class="cart-total" id="payAmount">Rp 0</span></div>
-                <div style="font-size:11px;font-weight:600;color:var(--muted);margin-bottom:4px;">Rekomendasi:</div>
-                <div class="money-suggestions" id="moneySuggestions"></div>
-                <div class="form-group"><label>Uang Diterima</label><input type="number" id="cashReceived" placeholder="Jumlah uang" oninput="calculateChange()"></div>
-                <div class="change-display" id="changeDisplay" style="display:none;"></div>
-            </div>
-            <div id="qrisSection" style="display:none;text-align:center;padding:16px;">
-                <div style="font-size:40px;">📱</div>
-                <div class="cart-total" id="qrisAmount">Rp 0</div>
-                <p style="color:var(--muted);font-size:11px;">Scan QRIS</p>
-            </div>
-            <button class="btn btn-pay" onclick="processPayment()" style="width:100%;margin-top:10px;">✅ Konfirmasi</button>
-        </div>
-    </div>
-    
-    <!-- Product Modal -->
-    <div class="modal" id="productModal">
-        <div class="modal-box">
-            <button class="modal-close" onclick="closeModal('productModal')">✕</button>
-            <h3>➕ Tambah Produk</h3>
-            <div class="form-group"><label>Nama</label><input type="text" id="pName" placeholder="Nama produk"></div>
-            <div class="form-group"><label>Kategori</label><select id="pCat"><option value="Nasi Kuning">Nasi Kuning</option><option value="Lauk">Lauk</option><option value="Sembako">Sembako</option></select></div>
-            <div class="form-group"><label>Harga (Rp)</label><input type="number" id="pPrice" placeholder="Harga"></div>
-            <button class="btn btn-pay" onclick="addProduct()" style="width:100%;">Simpan</button>
-            
-            <hr style="border-color:var(--border);margin:12px 0;">
-            <h3>💰 Update Harga</h3>
-            <div class="form-group"><label>Produk</label><select id="updateSelect"></select></div>
-            <div class="form-group"><label>Harga Baru</label><input type="number" id="updatePrice" placeholder="Harga baru"></div>
-            <button class="btn" style="background:#f97316;color:#fff;width:100%;" onclick="updateProductPrice()">Update</button>
-            
-            <hr style="border-color:var(--border);margin:12px 0;">
-            <h3>🗑️ Nonaktifkan</h3>
-            <div class="form-group"><label>Produk</label><select id="deleteSelect"></select></div>
-            <button class="btn" style="background:var(--danger);color:#fff;width:100%;" onclick="deleteProduct()">Nonaktifkan</button>
-        </div>
-    </div>
-    
-    <!-- Report Modal -->
-    <div class="modal" id="reportModal">
-        <div class="modal-box">
-            <button class="modal-close" onclick="closeModal('reportModal')">✕</button>
-            <h3>📊 Laporan</h3>
-            <div class="form-group"><label>Jenis</label><select id="reportType" onchange="switchReport()"><option value="daily">Harian</option><option value="monthly">Bulanan</option></select></div>
-            <div id="dailyDate"><div class="form-group"><label>Tanggal</label><input type="date" id="rDate" onchange="loadReport()"></div></div>
-            <div id="monthlyDate" style="display:none;"><div class="form-group"><label>Bulan</label><input type="month" id="rMonth" onchange="loadReport()"></div></div>
-            <div id="reportContent"></div>
-        </div>
-    </div>
-    
-    <!-- Detail Modal -->
-    <div class="modal" id="detailModal">
-        <div class="modal-box">
-            <button class="modal-close" onclick="closeModal('detailModal')">✕</button>
-            <h3>📋 Rincian Transaksi</h3>
-            <div id="detailContent"></div>
-        </div>
-    </div>
-    
-    <div id="toastContainer" style="position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:3000;width:90%;max-width:400px;"></div>
-    <div class="loading" id="loading"><div class="spinner"></div></div>
+<div class="app">
+<div class="top"><div><span class="dot" id="dot"></span> <span id="st">...</span></div><div style="font-weight:700" id="clk">--:--</div><div class="ses pagi" id="sbadge">🌅 PAGI</div></div>
+<div class="hd"><div class="logo">🏪</div><div><h1>TOKO N-Dhonk</h1><p>Nasi Kuning · Lauk · Sembako</p></div><div style="margin-left:auto;display:flex;gap:4px"><button class="btn" style="padding:6px 8px;font-size:10px;background:var(--c);border:1px solid var(--b);color:var(--t)" onclick="mo('rp')">📊</button><button class="btn" style="padding:6px 8px;font-size:10px;background:var(--c);border:1px solid var(--b);color:var(--t)" onclick="mo('pm')">📦</button></div></div>
+<div class="tabs"><button class="tab on" onclick="fc('Semua',this)">Semua</button><button class="tab" onclick="fc('Nasi Kuning',this)">Nasi Kuning</button><button class="tab" onclick="fc('Lauk',this)">Lauk</button><button class="tab" onclick="fc('Sembako',this)">Sembako</button></div>
+<div class="main" id="pa"></div>
+<div class="cart"><div class="ci" id="ci"><div style="color:var(--m);font-size:10px;text-align:center;padding:6px">🛒 Kosong</div></div><div class="cr"><span>Total</span><span class="ctot" id="ct">Rp 0</span></div><div class="ca"><button class="btn bc" onclick="clr()">🗑️</button><button class="btn bp" id="bp" onclick="op()" disabled>💳 Bayar</button></div></div>
+</div>
 
-    <script>
-        // Ganti URL Web App sesuai Google Apps Script Anda
-        const API = 'https://script.google.com/macros/s/AKfycby0mpLoFPYZe5Yp_YMkrJAXSOhHPM1X-WA5Hgq5ciPCl1osy9WUs_LKu3k0mqt6EsLG/exec';
-        
-        let products = [];
-        let cart = [];
-        let currentCat = 'Semua';
-        let paymentMethod = 'Tunai';
-        let currentSession = 'PAGI';
+<!-- MODAL BAYAR -->
+<div class="mod" id="payMod"><div class="mb"><button class="mc" onclick="cl('payMod')">✕</button><h3>💳 Pembayaran</h3>
+<div class="pay"><div class="po on" onclick="sp('Tunai',this)">💵 Tunai</div><div class="po" onclick="sp('QRIS',this)">📱 QRIS</div></div>
+<div id="tunSec"><div class="cr"><span>Total</span><span class="ctot" id="pAmt">Rp 0</span></div><div style="font-size:10px;color:var(--m);margin-bottom:3px">💡 Rekomendasi:</div><div class="ms" id="mSug"></div><div class="fg"><label>Uang Diterima</label><input type="number" id="cash" placeholder="Jumlah uang" oninput="calc()"></div><div class="chg" id="chgDisp" style="display:none"></div></div>
+<div id="qrisSec" style="display:none;text-align:center;padding:14px"><div style="font-size:36px">📱</div><div class="ctot" id="qAmt">Rp 0</div><p style="color:var(--m);font-size:10px">Scan QRIS</p></div>
+<button class="btn bp" onclick="proc()" style="width:100%;margin-top:8px">✅ Konfirmasi</button></div></div>
 
-        window.onload = function() {
-            updateClock();
-            setInterval(updateClock, 1000);
-            
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('rDate').value = today;
-            
-            const now = new Date();
-            const m = String(now.getMonth() + 1).padStart(2, '0');
-            document.getElementById('rMonth').value = `${now.getFullYear()}-${m}`;
-            
-            loadProducts();
-        };
+<!-- MODAL PRODUK -->
+<div class="mod" id="pm"><div class="mb"><button class="mc" onclick="cl('pm')">✕</button><h3>➕ Tambah</h3>
+<div class="fg"><label>Nama</label><input type="text" id="pName" placeholder="Nama produk"></div>
+<div class="fg"><label>Kategori</label><select id="pCat"><option>Nasi Kuning</option><option>Lauk</option><option>Sembako</option></select></div>
+<div class="fg"><label>Harga</label><input type="number" id="pPrice" placeholder="Harga"></div>
+<button class="btn bp" onclick="addP()" style="width:100%">Simpan</button>
+<hr style="border-color:var(--b);margin:10px 0"><h3>💰 Update Harga</h3>
+<div class="fg"><label>Produk</label><select id="upSel"></select></div>
+<div class="fg"><label>Harga Baru</label><input type="number" id="upPrice" placeholder="Harga baru"></div>
+<button class="btn" style="background:#f97316;color:#fff;width:100%" onclick="upP()">Update</button>
+<hr style="border-color:var(--b);margin:10px 0"><h3>🗑️ Nonaktifkan</h3>
+<div class="fg"><label>Produk</label><select id="delSel"></select></div>
+<button class="btn" style="background:var(--d);color:#fff;width:100%" onclick="delP()">Nonaktifkan</button></div></div>
 
-        function updateClock() {
-            const now = new Date();
-            const h = now.getHours();
-            const m = String(now.getMinutes()).padStart(2, '0');
-            document.getElementById('clock').innerText = `${String(h).padStart(2, '0')}:${m}`;
-            
-            const badge = document.getElementById('sessionBadge');
-            if (h >= 5 && h < 16) {
-                currentSession = 'PAGI';
-                badge.className = 'session pagi';
-                badge.innerText = '🌅 PAGI';
-            } else {
-                currentSession = 'MALAM';
-                badge.className = 'session malam';
-                badge.innerText = '🌙 MALAM';
-            }
-        }
+<!-- MODAL LAPORAN -->
+<div class="mod" id="rp"><div class="mb"><button class="mc" onclick="cl('rp')">✕</button><h3>📊 Laporan</h3>
+<div class="fg"><label>Jenis</label><select id="rt" onchange="swR()"><option value="d">Harian</option><option value="m">Bulanan</option></select></div>
+<div id="dd"><div class="fg"><label>Tanggal</label><input type="date" id="rd" onchange="lr()"></div></div>
+<div id="md" style="display:none"><div class="fg"><label>Bulan</label><input type="month" id="rm" onchange="lr()"></div></div>
+<div id="rc"></div></div></div>
 
-        async function fetchAPI(action, data = null, params = '') {
-            try {
-                let url = API + '?action=' + action + params;
-                let opts = { method: 'GET' };
-                
-                if (data) {
-                    opts.method = 'POST';
-                    // Header text/plain mencegah CORS preflight
-                    opts.headers = { 'Content-Type': 'text/plain;charset=utf-8' };
-                    opts.body = JSON.stringify(data);
-                }
-                
-                const res = await fetch(url, opts);
-                return await res.json();
-            } catch(e) { 
-                console.error('Fetch API Error:', e); 
-                return { error: true }; 
-            }
-        }
+<!-- MODAL DETAIL -->
+<div class="mod" id="dm"><div class="mb"><button class="mc" onclick="cl('dm')">✕</button><h3>📋 Detail</h3><div id="dc"></div></div></div>
 
-        function showLoading() { document.getElementById('loading').classList.add('show'); }
-        function hideLoading() { document.getElementById('loading').classList.remove('show'); }
+<div id="tc" style="position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:9999;width:90%;max-width:380px"></div>
+<div class="load" id="load"><div class="spin"></div></div>
 
-        function showToast(msg, isErr = false) {
-            const container = document.getElementById('toastContainer');
-            const toast = document.createElement('div');
-            toast.className = `toast ${isErr ? 'err' : ''}`;
-            toast.innerText = msg;
-            container.appendChild(toast);
-            setTimeout(() => toast.remove(), 3000);
-        }
+<script>
+const API='https://script.google.com/macros/s/AKfycby0mpLoFPYZe5Yp_YMkrJAXSOhHPM1X-WA5Hgq5ciPCl1osy9WUs_LKu3k0mqt6EsLG/exec';
+const PECAHAN=[100000,75000,50000,20000,10000,5000,2000,1000,500];
+let prods=[],cart=[],fil='Semua',pay='Tunai';
 
-        function formatRp(val) {
-            return 'Rp ' + Number(val || 0).toLocaleString('id-ID');
-        }
+// ── INIT ──
+document.addEventListener('DOMContentLoaded',()=>{
+  let n=new Date(),ds=n.toISOString().split('T')[0];
+  document.getElementById('rd').value=ds;
+  document.getElementById('rm').value=ds.slice(0,7);
+  clock();setInterval(clock,30000);
+  ping();loadP();
+});
 
-        function loadProducts() {
-            showLoading();
-            fetchAPI('getProducts').then(data => {
-                hideLoading();
-                if (Array.isArray(data)) {
-                    products = data;
-                    renderProducts();
-                    populateSelects();
-                    document.getElementById('dot').classList.remove('off');
-                    document.getElementById('statusText').innerText = 'Terhubung';
-                } else {
-                    document.getElementById('dot').classList.add('off');
-                    document.getElementById('statusText').innerText = 'Gagal';
-                }
-            }).catch(() => hideLoading());
-        }
+function clock(){
+  let n=new Date(),h=n.getHours(),m=n.getMinutes().toString().padStart(2,'0');
+  document.getElementById('clk').textContent=h+':'+m;
+  let b=document.getElementById('sbadge');
+  if(h>=6&&h<17){b.textContent='🌅 PAGI';b.className='ses pagi'}
+  else{b.textContent='🌙 MALAM';b.className='ses malam'}
+}
 
-        function renderProducts() {
-            const container = document.getElementById('productArea');
-            container.innerHTML = '';
-            
-            const cats = ['Nasi Kuning', 'Lauk', 'Sembako'];
-            const filtered = currentCat === 'Semua' ? products : products.filter(p => p.category === currentCat);
-            
-            cats.forEach(c => {
-                if (currentCat !== 'Semua' && currentCat !== c) return;
-                const items = filtered.filter(p => p.category === c);
-                if (items.length === 0) return;
-                
-                let catClass = 'cat-nk';
-                if (c === 'Lauk') catClass = 'cat-lauk';
-                if (c === 'Sembako') catClass = 'cat-sembako';
-                
-                const title = document.createElement('div');
-                title.className = `cat-title ${catClass}`;
-                title.innerText = c;
-                container.appendChild(title);
-                
-                const list = document.createElement('div');
-                list.className = 'product-list';
-                
-                items.forEach(p => {
-                    const card = document.createElement('div');
-                    card.className = 'product-card';
-                    card.onclick = () => addToCart(p);
-                    card.innerHTML = `
-                        <div class="pcat">${p.category}</div>
-                        <div class="pname">${p.name}</div>
-                        <div class="pprice">${formatRp(p.price)}</div>
-                    `;
-                    list.appendChild(card);
-                });
-                
-                container.appendChild(list);
-            });
-        }
+function rp(n){return'Rp '+Number(n).toLocaleString('id-ID')}
 
-        function filterCat(cat, el) {
-            currentCat = cat;
-            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            el.classList.add('active');
-            renderProducts();
-        }
+// ── API ──
+async function api(act,data,par=''){
+  try{
+    let u=API+'?action='+act+par,o={method:'GET'};
+    if(data){o.method='POST';o.body=JSON.stringify(data)}
+    let r=await fetch(u,o);return await r.json();
+  }catch(e){return{err:true}}
+}
 
-        function addToCart(p) {
-            const exist = cart.find(i => i.id === p.id);
-            if (exist) {
-                exist.qty++;
-            } else {
-                cart.push({ id: p.id, name: p.name, price: p.price, qty: 1 });
-            }
-            renderCart();
-        }
+function ping(){
+  api('ping').then(r=>{
+    let d=document.getElementById('dot'),s=document.getElementById('st');
+    if(r&&r.ok){d.classList.remove('off');s.textContent='Online'}
+    else{d.classList.add('off');s.textContent='Offline';setTimeout(ping,3000)}
+  });
+}
 
-        function updateQty(id, delta) {
-            const item = cart.find(i => i.id === id);
-            if (!item) return;
-            item.qty += delta;
-            if (item.qty <= 0) {
-                cart = cart.filter(i => i.id !== id);
-            }
-            renderCart();
-        }
+function loadP(){ld(1);api('products').then(d=>{ld(0);prods=Array.isArray(d)?d:[];render()})}
 
-        function clearCart() {
-            cart = [];
-            renderCart();
-        }
+// ── RENDER ──
+function render(){
+  let a=document.getElementById('pa');
+  if(!prods.length){a.innerHTML='<div style="text-align:center;padding:40px;color:var(--m)">📦 Belum ada produk</div>';return}
+  
+  if(fil==='Semua'){
+    let cats=[['Nasi Kuning','🍚 Nasi Kuning','nk'],['Lauk','🍗 Lauk','lauk'],['Sembako','🛒 Sembako','smb']];
+    let h='';
+    cats.forEach(c=>{
+      let items=prods.filter(p=>p.cat===c[0]);
+      if(items.length) h+='<div class="ct '+c[2]+'">'+c[1]+'</div><div class="pl">'+items.map(p=>card(p)).join('')+'</div>';
+    });
+    a.innerHTML=h||'<div style="text-align:center;padding:40px;color:var(--m)">📦 Belum ada produk</div>';
+  }else{
+    let f=prods.filter(p=>p.cat===fil);
+    a.innerHTML=f.length?'<div class="pl">'+f.map(p=>card(p)).join('')+'</div>':'<div style="text-align:center;padding:40px;color:var(--m)">Tidak ada</div>';
+  }
+}
 
-        function getTotal() {
-            return cart.reduce((sum, i) => sum + (i.price * i.qty), 0);
-        }
+function card(p){
+  return '<div class="pc" onclick="add(\''+p.id+'\',\''+p.name.replace(/'/g,"\\'")+'\','+p.price+',\''+p.cat+'\')"><div class="pcat">'+p.cat+'</div><div class="pn">'+p.name+'</div><div class="pp">'+rp(p.price)+'</div></div>';
+}
 
-        function renderCart() {
-            const container = document.getElementById('cartItems');
-            container.innerHTML = '';
-            
-            cart.forEach(i => {
-                const itemDiv = document.createElement('div');
-                itemDiv.className = 'cart-item';
-                itemDiv.innerHTML = `
-                    <div>
-                        <div style="font-weight:600;">${i.name}</div>
-                        <div style="font-size:10px;color:var(--muted);">${formatRp(i.price)}</div>
-                    </div>
-                    <div class="qty-control">
-                        <button class="qty-btn" onclick="updateQty('${i.id}', -1)">-</button>
-                        <span>${i.qty}</span>
-                        <button class="qty-btn" onclick="updateQty('${i.id}', 1)">+</button>
-                    </div>
-                    <div class="item-total">${formatRp(i.price * i.qty)}</div>
-                `;
-                container.appendChild(itemDiv);
-            });
-            
-            const total = getTotal();
-            document.getElementById('cartTotal').innerText = formatRp(total);
-            document.getElementById('btnPay').disabled = cart.length === 0;
-        }
+function fc(c,el){fil=c;document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));el.classList.add('on');render()}
 
-        function openModal(id) {
-            document.getElementById(id).classList.add('show');
-            if (id === 'reportModal') loadReport();
-        }
+// ── KERANJANG ──
+function add(id,name,price,cat){
+  let e=cart.find(i=>i.id===id);
+  if(e)e.qty++;else cart.push({id,name,price,cat,qty:1});
+  uc();toast('✅ '+name);
+}
 
-        function closeModal(id) {
-            document.getElementById(id).classList.remove('show');
-        }
+function uq(i,d){cart[i].qty+=d;if(cart[i].qty<=0)cart.splice(i,1);uc()}
+function clr(){cart=[];uc();toast('🗑️ Dikosongkan')}
 
-        function openPayment() {
-            if (cart.length === 0) return;
-            const total = getTotal();
-            document.getElementById('payAmount').innerText = formatRp(total);
-            document.getElementById('qrisAmount').innerText = formatRp(total);
-            
-            generateSuggestions(total);
-            document.getElementById('cashReceived').value = '';
-            document.getElementById('changeDisplay').style.display = 'none';
-            
-            setPayment('Tunai', document.getElementById('payOptTunai'));
-            openModal('paymentModal');
-        }
+function uc(){
+  let ci=document.getElementById('ci'),ct=document.getElementById('ct'),bp=document.getElementById('bp');
+  if(!cart.length){
+    ci.innerHTML='<div style="color:var(--m);font-size:10px;text-align:center;padding:6px">🛒 Kosong</div>';
+    ct.textContent='Rp 0';bp.disabled=true;return;
+  }
+  ci.innerHTML=cart.map((it,i)=>'<div class="cir"><div style="flex:1;font-size:10px">'+it.name+'</div><div class="qc"><button class="qb" onclick="uq('+i+',-1)">−</button><span style="min-width:18px;text-align:center;font-weight:700">'+it.qty+'</span><button class="qb" onclick="uq('+i+',1)">+</button></div><div style="font-weight:700;min-width:65px;text-align:right">'+rp(it.price*it.qty)+'</div></div>').join('');
+  let t=cart.reduce((s,i)=>s+i.price*i.qty,0);
+  ct.textContent=rp(t);bp.disabled=false;
+}
 
-        function setPayment(method, el) {
-            paymentMethod = method;
-            document.querySelectorAll('.pay-opt').forEach(o => o.classList.remove('active'));
-            if(el) el.classList.add('active');
-            
-            if (method === 'Tunai') {
-                document.getElementById('tunaiSection').style.display = 'block';
-                document.getElementById('qrisSection').style.display = 'none';
-            } else {
-                document.getElementById('tunaiSection').style.display = 'none';
-                document.getElementById('qrisSection').style.display = 'block';
-            }
-        }
+function tot(){return cart.reduce((s,i)=>s+i.price*i.qty,0)}
 
-        function generateSuggestions(total) {
-            const container = document.getElementById('moneySuggestions');
-            container.innerHTML = '';
-            
-            const chips = [total];
-            const denoms = [2000, 5000, 10000, 20000, 50000, 100000];
-            
-            denoms.forEach(d => {
-                if (d > total) {
-                    const ceil = Math.ceil(total / d) * d;
-                    if (!chips.includes(ceil)) chips.push(ceil);
-                }
-            });
-            
-            chips.sort((a,b) => a - b).slice(0, 4).forEach(amt => {
-                const chip = document.createElement('div');
-                chip.className = 'money-chip';
-                chip.innerText = formatRp(amt);
-                chip.onclick = () => {
-                    document.getElementById('cashReceived').value = amt;
-                    calculateChange();
-                };
-                container.appendChild(chip);
-            });
-        }
+// ── BAYAR ──
+function op(){
+  if(!cart.length)return;
+  let t=tot();
+  document.getElementById('pAmt').textContent=rp(t);
+  document.getElementById('qAmt').textContent=rp(t);
+  
+  // Rekomendasi uang
+  let sug=document.getElementById('mSug'),amts=[];
+  // Bulatkan ke atas
+  [500,1000,2000,5000,10000].forEach(p=>{let a=Math.ceil(t/p)*p;if(a>=t)amts.push(a)});
+  // Pecahan yang masuk akal (1x-3x total)
+  PECAHAN.forEach(p=>{if(p>=t&&p<=t*3)amts.push(p)});
+  // Remove duplicates, sort, ambil 6
+  amts=[...new Set(amts)].sort((a,b)=>a-b).filter(a=>a>=t).slice(0,6);
+  sug.innerHTML=amts.map(a=>'<div class="mc2" onclick="sc('+a+')">'+rp(a)+'</div>').join('');
+  
+  document.getElementById('cash').value='';
+  document.getElementById('chgDisp').style.display='none';
+  document.getElementById('tunSec').style.display='block';
+  document.getElementById('qrisSec').style.display='none';
+  pay='Tunai';
+  document.querySelectorAll('.po').forEach((el,i)=>el.classList.toggle('on',i===0));
+  mo('payMod');
+}
 
-        function calculateChange() {
-            const total = getTotal();
-            const rec = Number(document.getElementById('cashReceived').value) || 0;
-            const changeDiv = document.getElementById('changeDisplay');
-            
-            if (rec >= total && total > 0) {
-                const change = rec - total;
-                changeDiv.style.display = 'block';
-                changeDiv.innerHTML = `<span style="font-size:11px;color:var(--muted);">Kembalian:</span><br><strong style="font-size:16px;color:var(--success);">${formatRp(change)}</strong>`;
-            } else {
-                changeDiv.style.display = 'none';
-            }
-        }
+function sp(m,el){pay=m;document.querySelectorAll('.po').forEach(o=>o.classList.remove('on'));el.classList.add('on');document.getElementById('tunSec').style.display=m==='Tunai'?'block':'none';document.getElementById('qrisSec').style.display=m==='QRIS'?'block':'none'}
 
-        function processPayment() {
-            const total = getTotal();
-            let cashRec = total;
-            let change = 0;
-            
-            if (paymentMethod === 'Tunai') {
-                cashRec = Number(document.getElementById('cashReceived').value) || 0;
-                if (cashRec < total) {
-                    showToast('Uang diterima kurang!', true);
-                    return;
-                }
-                change = cashRec - total;
-            }
-            
-            const payload = {
-                items: cart,
-                total: total,
-                paymentMethod: paymentMethod,
-                cashReceived: cashRec,
-                change: change,
-                session: currentSession
-            };
-            
-            showLoading();
-            fetchAPI('saveTransaction', payload).then(res => {
-                hideLoading();
-                if (res && res.success) {
-                    showToast('Transaksi berhasil!');
-                    clearCart();
-                    closeModal('paymentModal');
-                } else {
-                    showToast('Gagal menyimpan transaksi', true);
-                }
-            }).catch(() => hideLoading());
-        }
+function sc(v){document.getElementById('cash').value=v;calc()}
 
-        function populateSelects() {
-            const updateSel = document.getElementById('updateSelect');
-            const deleteSel = document.getElementById('deleteSelect');
-            
-            updateSel.innerHTML = '';
-            deleteSel.innerHTML = '';
-            
-            products.forEach(p => {
-                const opt1 = document.createElement('option');
-                opt1.value = p.id;
-                opt1.innerText = `${p.name} (${formatRp(p.price)})`;
-                updateSel.appendChild(opt1);
-                
-                const opt2 = document.createElement('option');
-                opt2.value = p.id;
-                opt2.innerText = `${p.name} (${p.category})`;
-                deleteSel.appendChild(opt2);
-            });
-        }
+function calc(){
+  let t=tot(),cash=Number(document.getElementById('cash').value)||0,chg=cash-t;
+  let d=document.getElementById('chgDisp');
+  if(cash<=0){d.style.display='none';return}
+  d.style.display='block';
+  if(chg<0){d.innerHTML='<div style="color:var(--d);font-weight:700">❌ Kurang '+rp(Math.abs(chg))+'</div>';return}
+  let rem=chg,det=[];
+  PECAHAN.forEach(p=>{let c=Math.floor(rem/p);if(c>0){det.push(c+'× '+rp(p));rem-=c*p}});
+  d.innerHTML='<div style="color:var(--s);font-weight:800;font-size:15px">💰 Kembalian: '+rp(chg)+'</div>'+(det.length?'<div style="font-size:9px;color:var(--m);margin-top:2px">Pecahan: '+det.join(', ')+'</div>':'<div style="font-size:9px;color:var(--m)">Uang pas</div>');
+}
 
-        function addProduct() {
-            const name = document.getElementById('pName').value;
-            const cat = document.getElementById('pCat').value;
-            const price = Number(document.getElementById('pPrice').value);
-            
-            if (!name || !price) {
-                showToast('Isi nama & harga!', true);
-                return;
-            }
-            
-            showLoading();
-            fetchAPI('addProduct', { name, category: cat, price }).then(res => {
-                hideLoading();
-                if (res && res.success) {
-                    showToast('Produk ditambahkan');
-                    document.getElementById('pName').value = '';
-                    document.getElementById('pPrice').value = '';
-                    closeModal('productModal');
-                    loadProducts();
-                } else {
-                    showToast('Gagal menambah produk', true);
-                }
-            }).catch(() => hideLoading());
-        }
+function proc(){
+  if(pay==='Tunai'){
+    let cash=Number(document.getElementById('cash').value)||0;
+    if(cash<tot()){toast('⚠️ Uang kurang!',1);return}
+  }
+  cl('payMod');ld(1);
+  api('sell',{items:cart.map(i=>({id:i.id,name:i.name,cat:i.cat,price:i.price,qty:i.qty})),total:tot(),pay:pay}).then(r=>{
+    ld(0);
+    if(r&&r.ok){
+      let chg=pay==='Tunai'?(Number(document.getElementById('cash').value)||0)-tot():0;
+      cart=[];uc();toast('✅ Berhasil! '+r.ses);
+      if(chg>0)setTimeout(()=>toast('💰 Kembalian: '+rp(chg)),1500);
+    }else{toast('❌ Gagal!',1)}
+  });
+}
 
-        function updateProductPrice() {
-            const id = document.getElementById('updateSelect').value;
-            const price = Number(document.getElementById('updatePrice').value);
-            
-            if (!id || !price) {
-                showToast('Pilih produk & harga baru!', true);
-                return;
-            }
-            
-            showLoading();
-            fetchAPI('updateProductPrice', { id, price }).then(res => {
-                hideLoading();
-                if (res && res.success) {
-                    showToast('Harga diperbarui');
-                    document.getElementById('updatePrice').value = '';
-                    closeModal('productModal');
-                    loadProducts();
-                } else {
-                    showToast('Gagal update harga', true);
-                }
-            }).catch(() => hideLoading());
-        }
+// ── PRODUK ──
+function addP(){
+  let n=document.getElementById('pName').value.trim(),c=document.getElementById('pCat').value,p=document.getElementById('pPrice').value;
+  if(!n||!p)return toast('⚠️ Isi semua!',1);
+  ld(1);api('add',{name:n,cat:c,price:Number(p)}).then(r=>{
+    ld(0);if(r&&r.ok){document.getElementById('pName').value='';document.getElementById('pPrice').value='';toast('✅ Ditambahkan!');loadP();pop()}
+    else toast('❌ Gagal!',1);
+  });
+}
 
-        function deleteProduct() {
-            const id = document.getElementById('deleteSelect').value;
-            if (!id) return;
-            
-            if (!confirm('Yakin ingin menonaktifkan produk ini?')) return;
-            
-            showLoading();
-            fetchAPI('deleteProduct', { id }).then(res => {
-                hideLoading();
-                if (res && res.success) {
-                    showToast('Produk dinonaktifkan');
-                    closeModal('productModal');
-                    loadProducts();
-                } else {
-                    showToast('Gagal menonaktifkan', true);
-                }
-            }).catch(() => hideLoading());
-        }
+function upP(){
+  let id=document.getElementById('upSel').value,p=document.getElementById('upPrice').value;
+  if(!id||!p)return toast('⚠️ Lengkapi!',1);
+  ld(1);api('price',{id:id,price:Number(p)}).then(r=>{
+    ld(0);if(r&&r.ok){document.getElementById('upPrice').value='';toast('✅ Diupdate!');loadP()}else toast('❌ Gagal!',1);
+  });
+}
 
-        function switchReport() {
-            const type = document.getElementById('reportType').value;
-            if (type === 'daily') {
-                document.getElementById('dailyDate').style.display = 'block';
-                document.getElementById('monthlyDate').style.display = 'none';
-            } else {
-                document.getElementById('dailyDate').style.display = 'none';
-                document.getElementById('monthlyDate').style.display = 'block';
-            }
-            loadReport();
-        }
+function delP(){
+  let id=document.getElementById('delSel').value;
+  if(!id||!confirm('Nonaktifkan?'))return;
+  ld(1);api('del',{id:id}).then(r=>{
+    ld(0);if(r&&r.ok){toast('✅ Dinonaktifkan!');loadP();pop()}else toast('❌ Gagal!',1);
+  });
+}
 
-        function loadReport() {
-            const type = document.getElementById('reportType').value;
-            showLoading();
-            
-            if (type === 'daily') {
-                const date = document.getElementById('rDate').value;
-                if (!date) { hideLoading(); return; }
-                
-                fetchAPI('getDailyReport', null, '&date=' + encodeURIComponent(date)).then(r => {
-                    hideLoading();
-                    displayDaily(r);
-                }).catch(e => { hideLoading(); console.error(e); });
-            } else {
-                const mv = document.getElementById('rMonth').value;
-                if (!mv) { hideLoading(); return; }
-                
-                const [y, m] = mv.split('-');
-                const monthNum = parseInt(m, 10);
-                const yearNum = parseInt(y, 10);
-                
-                fetchAPI('getMonthlyReport', null, '&month=' + monthNum + '&year=' + yearNum).then(r => {
-                    hideLoading();
-                    displayMonthly(r);
-                }).catch(e => { hideLoading(); console.error(e); });
-            }
-        }
+function pop(){
+  api('products').then(d=>{
+    if(!Array.isArray(d))return;
+    let o=d.map(p=>'<option value="'+p.id+'">'+p.name+' - '+rp(p.price)+'</option>').join('');
+    document.getElementById('upSel').innerHTML=o;
+    document.getElementById('delSel').innerHTML=o;
+  });
+}
 
-        function displayDaily(data) {
-            const container = document.getElementById('reportContent');
-            if (data.error) {
-                container.innerHTML = '<div style="text-align:center;padding:10px;">Gagal memuat laporan</div>';
-                return;
-            }
-            container.innerHTML = `
-                <div class="report-card">
-                    <div class="report-row"><span>Jumlah Transaksi</span><strong>${data.count || 0}</strong></div>
-                    <div class="report-row"><span>Tunai</span><strong>${formatRp(data.cash)}</strong></div>
-                    <div class="report-row"><span>QRIS</span><strong>${formatRp(data.qris)}</strong></div>
-                    <div class="report-row report-total"><span>Total Omset</span><strong style="color:var(--primary);">${formatRp(data.total)}</strong></div>
-                </div>
-                <button class="btn btn-pay" style="width:100%;font-size:12px;" onclick="loadDetail('${data.date}')">📋 Lihat Detail Transaksi</button>
-            `;
-        }
+// ── LAPORAN ──
+function swR(){document.getElementById('dd').style.display=document.getElementById('rt').value==='d'?'block':'none';document.getElementById('md').style.display=document.getElementById('rt').value==='m'?'block':'none';lr()}
 
-        function displayMonthly(data) {
-            const container = document.getElementById('reportContent');
-            if (data.error) {
-                container.innerHTML = '<div style="text-align:center;padding:10px;">Gagal memuat laporan</div>';
-                return;
-            }
-            container.innerHTML = `
-                <div class="report-card">
-                    <div class="report-row"><span>Total Transaksi</span><strong>${data.count || 0}</strong></div>
-                    <div class="report-row"><span>Total Tunai</span><strong>${formatRp(data.cash)}</strong></div>
-                    <div class="report-row"><span>Total QRIS</span><strong>${formatRp(data.qris)}</strong></div>
-                    <div class="report-row report-total"><span>Total Omset Bulan Ini</span><strong style="color:var(--primary);">${formatRp(data.total)}</strong></div>
-                </div>
-            `;
-        }
+function lr(){
+  let t=document.getElementById('rt').value,rc=document.getElementById('rc');ld(1);
+  if(t==='d'){
+    let d=document.getElementById('rd').value;if(!d){ld(0);return}
+    api('daily',null,'&date='+d).then(r=>{ld(0);dr(r)});
+  }else{
+    let mv=document.getElementById('rm').value;if(!mv){ld(0);return}
+    let[y,m]=mv.split('-');
+    api('monthly',null,'&m='+m+'&y='+y).then(r=>{ld(0);mr(r)});
+  }
+}
 
-        function loadDetail(date) {
-            showLoading();
-            fetchAPI('getDailyDetail', null, '&date=' + encodeURIComponent(date)).then(items => {
-                hideLoading();
-                const container = document.getElementById('detailContent');
-                container.innerHTML = '';
-                
-                if (!Array.isArray(items) || items.length === 0) {
-                    container.innerHTML = '<div style="text-align:center;padding:10px;color:var(--muted);">Tidak ada transaksi</div>';
-                } else {
-                    items.forEach(item => {
-                        const div = document.createElement('div');
-                        div.className = 'detail-item';
-                        div.innerHTML = `
-                            <div class="detail-header">
-                                <span>${item.time} (${item.session})</span>
-                                <span style="color:var(--primary);">${formatRp(item.total)}</span>
-                            </div>
-                            <div style="color:var(--muted);">${item.items}</div>
-                            <div style="margin-top:4px;font-size:10px;color:var(--muted);">Bayar: ${item.method}</div>
-                        `;
-                        container.appendChild(div);
-                    });
-                }
-                openModal('detailModal');
-            }).catch(() => hideLoading());
-        }
-    </script>
+function cr2(lab,d){
+  return d?('<div style="margin:3px 0;padding:4px;background:rgba(255,255,255,.02);border-radius:4px"><div style="font-weight:700;font-size:10px">'+lab+'</div><div style="display:flex;justify-content:space-between;font-size:10px;color:var(--m)"><span>Total</span><span style="color:var(--p);font-weight:700">'+rp(d||0)+'</span></div></div>'):'';
+}
+
+function dr(r){
+  let rc=document.getElementById('rc');
+  if(!r||r.total===undefined||r.total===null){rc.innerHTML='<p style="text-align:center;color:var(--m);padding:16px">📭 Tidak ada data</p>';return}
+  rc.innerHTML='<div class="rc"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><strong>📅 '+r.date+'</strong><button class="btn" style="padding:3px 8px;font-size:9px;background:0;border:1px solid var(--b);color:var(--p)" onclick="sd(\''+r.date+'\')">📋 Rincian</button></div><div style="color:var(--w);font-weight:700;font-size:10px">🌅 Pagi ('+(r.pagi?.trx||0)+' trx)</div>'+cr2('🍚 Nasi Kuning',r.pagi?.nk)+cr2('🍗 Lauk',r.pagi?.lauk)+cr2('🛒 Sembako',r.pagi?.smb)+'<div class="rt">Subtotal: '+rp(r.pagi?.total||0)+'</div><div style="color:#818cf8;font-weight:700;font-size:10px;margin-top:8px">🌙 Malam ('+(r.malam?.trx||0)+' trx)</div>'+cr2('🍚 Nasi Kuning',r.malam?.nk)+cr2('🍗 Lauk',r.malam?.lauk)+cr2('🛒 Sembako',r.malam?.smb)+'<div class="rt">Subtotal: '+rp(r.malam?.total||0)+'</div><div class="rt" style="color:var(--p);font-size:13px">💰 Total: '+rp(r.total||0)+'</div></div>';
+}
+
+function sd(date){
+  ld(1);api('detail',null,'&date='+date).then(r=>{
+    ld(0);let c=document.getElementById('dc');
+    if(!r||!r.tx||!r.tx.length){c.innerHTML='<p style="text-align:center;color:var(--m)">Tidak ada</p>';mo('dm');return}
+    let h='<p style="font-size:10px;color:var(--m);margin-bottom:6px">📅 '+date+' · '+r.tx.length+' transaksi</p>';
+    r.tx.forEach(t=>{
+      h+='<div class="di"><div class="dh"><span>#'+t.id.slice(-8)+'</span><span style="color:'+(t.ses==='Pagi'?'var(--w)':'#818cf8')+'">'+(t.ses==='Pagi'?'🌅':'🌙')+' '+t.time+'</span></div>';
+      t.items.forEach(i=>h+='<div style="display:flex;justify-content:space-between;font-size:9px;color:var(--m)"><span>'+i.name+' ×'+i.qty+'</span><span>'+rp(i.sub)+'</span></div>');
+      h+='<div style="display:flex;justify-content:space-between;font-weight:700;margin-top:3px;padding-top:3px;border-top:1px solid var(--b)"><span>'+t.pay+'</span><span>'+rp(t.total)+'</span></div></div>';
+    });
+    c.innerHTML=h;mo('dm');
+  });
+}
+
+function mr(r){
+  let rc=document.getElementById('rc');
+  if(!r||r.total===undefined||r.total===null){rc.innerHTML='<p style="text-align:center;color:var(--m);padding:16px">📭 Tidak ada data</p>';return}
+  let days='';if(r.days)Object.keys(r.days).sort().forEach(d=>{days+='<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--m)"><span>📅 Tgl '+d+'</span><span>'+rp(r.days[d])+'</span></div>'});
+  rc.innerHTML='<div class="rc"><strong>📆 '+r.month+'/'+r.year+'</strong><div style="color:var(--w);font-weight:700;font-size:10px;margin-top:6px">🌅 Pagi</div>'+cr2('🍚 Nasi Kuning',r.cat?.nk?.pagi)+cr2('🍗 Lauk',r.cat?.lauk?.pagi)+cr2('🛒 Sembako',r.cat?.smb?.pagi)+'<div style="color:#818cf8;font-weight:700;font-size:10px;margin-top:6px">🌙 Malam</div>'+cr2('🍚 Nasi Kuning',r.cat?.nk?.malam)+cr2('🍗 Lauk',r.cat?.lauk?.malam)+cr2('🛒 Sembako',r.cat?.smb?.malam)+(days?'<div style="font-weight:700;margin-top:6px">📅 Per Hari</div>'+days:'')+'<div class="rt" style="color:var(--p);font-size:13px">💰 Total: '+rp(r.total||0)+'</div></div>';
+}
+
+// ── UI ──
+function mo(id){document.getElementById(id).classList.add('on');if(id==='pm')pop();if(id==='rp')lr()}
+function cl(id){document.getElementById(id).classList.remove('on')}
+function toast(m,e){let el=document.createElement('div');el.className='toast'+(e?' err':'');el.textContent=m;document.getElementById('tc').appendChild(el);setTimeout(()=>{el.style.opacity='0';el.style.transition='.3s';setTimeout(()=>el.remove(),300)},2000)}
+function ld(s){document.getElementById('load').classList.toggle('on',s)}
+document.addEventListener('click',e=>{if(e.target.classList.contains('mod'))e.target.classList.remove('on')});
+</script>
 </body>
 </html>
