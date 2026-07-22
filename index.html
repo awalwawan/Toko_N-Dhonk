@@ -245,493 +245,475 @@
     <div id="toastContainer" style="position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:3000;width:90%;max-width:400px;"></div>
     <div class="loading" id="loading"><div class="spinner"></div></div>
 
-    <script>
-        // ⚠️ GANTI DENGAN URL DEPLOYMENT ANDA
-        const API = 'https://script.google.com/macros/s/AKfycby0mpLoFPYZe5Yp_YMkrJAXSOhHPM1X-WA5Hgq5ciPCl1osy9WUs_LKu3k0mqt6EsLG/exec';
-        
-        const PECAHAN = [100000, 50000, 20000, 10000, 5000, 2000, 1000, 500];
-        
-        let products = [], cart = [], filter = 'Semua', payment = 'Tunai';
-        
-        document.addEventListener('DOMContentLoaded', () => {
-            setDates();
-            updateClock();
-            setInterval(updateClock, 30000);
-            checkConnection();
-            loadProducts();
+   <script>
+    // ⚠️ GANTI DENGAN URL DEPLOYMENT ANDA
+    const API = 'https://script.google.com/macros/s/AKfycby0mpLoFPYZe5Yp_YMkrJAXSOhHPM1X-WA5Hgq5ciPCl1osy9WUs_LKu3k0mqt6EsLG/exec';
+    
+    const PECAHAN = [100000, 50000, 20000, 10000, 5000, 2000, 1000, 500];
+    
+    let products = [], cart = [], filter = 'Semua', payment = 'Tunai';
+    
+    document.addEventListener('DOMContentLoaded', () => {
+        setDates();
+        updateClock();
+        setInterval(updateClock, 30000);
+        checkConnection();
+        loadProducts();
+    });
+    
+    function setDates() {
+        const now = new Date().toISOString().split('T')[0];
+        document.getElementById('rDate').value = now;
+        document.getElementById('rMonth').value = now.slice(0,7);
+    }
+    
+    function updateClock() {
+        const now = new Date();
+        document.getElementById('clock').textContent = now.getHours() + ':' + now.getMinutes().toString().padStart(2,'0');
+        const badge = document.getElementById('sessionBadge');
+        const h = now.getHours();
+        if (h >= 6 && h < 17) { badge.textContent = '🌅 PAGI'; badge.className = 'session pagi'; }
+        else { badge.textContent = '🌙 MALAM'; badge.className = 'session malam'; }
+    }
+    
+    function formatRupiah(n) { return 'Rp ' + Number(n).toLocaleString('id-ID'); }
+    
+    async function fetchAPI(action, data = null, params = '') {
+        try {
+            let url = API + '?action=' + action + params;
+            let opts = { method: 'GET' };
+            if (data) { opts.method = 'POST'; opts.body = JSON.stringify(data); }
+            const res = await fetch(url, opts);
+            return await res.json();
+        } catch(e) { console.error(e); return { error: true, message: e.message }; }
+    }
+    
+    function checkConnection() {
+        fetchAPI('checkConnection').then(r => {
+            const dot = document.getElementById('dot');
+            if (r.connected) { dot.classList.remove('off'); document.getElementById('statusText').textContent = 'Online'; }
+            else { dot.classList.add('off'); document.getElementById('statusText').textContent = 'Offline'; setTimeout(checkConnection, 3000); }
         });
-        
-        function setDates() {
-            const now = new Date().toISOString().split('T')[0];
-            document.getElementById('rDate').value = now;
-            document.getElementById('rMonth').value = now.slice(0,7);
-        }
-        
-        function updateClock() {
-            const now = new Date();
-            document.getElementById('clock').textContent = now.getHours() + ':' + now.getMinutes().toString().padStart(2,'0');
-            const badge = document.getElementById('sessionBadge');
-            const h = now.getHours();
-            if (h >= 6 && h < 17) { badge.textContent = '🌅 PAGI'; badge.className = 'session pagi'; }
-            else { badge.textContent = '🌙 MALAM'; badge.className = 'session malam'; }
-        }
-        
-        function formatRupiah(n) { return 'Rp ' + Number(n).toLocaleString('id-ID'); }
-        
-        async function fetchAPI(action, data = null, params = '') {
-            try {
-                let url = API + '?action=' + action + params;
-                let opts = { method: 'GET' };
-                if (data) { opts.method = 'POST'; opts.body = JSON.stringify(data); }
-                const res = await fetch(url, opts);
-                return await res.json();
-            } catch(e) { return { error: true, message: e.message }; }
-        }
-        
-        function checkConnection() {
-            fetchAPI('checkConnection').then(r => {
-                const dot = document.getElementById('dot');
-                if (r.connected) { dot.classList.remove('off'); document.getElementById('statusText').textContent = 'Online'; }
-                else { dot.classList.add('off'); document.getElementById('statusText').textContent = 'Offline'; setTimeout(checkConnection, 3000); }
-            });
-        }
-        
-        function loadProducts() {
-            showLoading();
-            fetchAPI('getProducts').then(data => {
-                hideLoading();
-                products = Array.isArray(data) ? data : [];
-                renderProducts();
-            });
-        }
-        
-        function renderProducts() {
-            const area = document.getElementById('productArea');
-            
-            if (products.length === 0) {
-                area.innerHTML = '<div class="empty-section">📦<br>Belum ada produk</div>';
-                return;
-            }
-            
-            let filtered = filter === 'Semua' ? products : products.filter(p => p.category === filter);
-            
-            if (filter === 'Semua') {
-                // Group by category
-                const nk = products.filter(p => p.category === 'Nasi Kuning');
-                const lauk = products.filter(p => p.category === 'Lauk');
-                const sembako = products.filter(p => p.category === 'Sembako');
-                
-                let html = '';
-                
-                if (nk.length > 0) {
-                    html += '<div class="category-section"><div class="category-title cat-nk">🍚 Nasi Kuning</div><div class="product-row">';
-                    nk.forEach(p => html += productCard(p));
-                    html += '</div></div>';
-                }
-                
-                if (lauk.length > 0) {
-                    html += '<div class="category-section"><div class="category-title cat-lauk">🍗 Lauk</div><div class="product-row">';
-                    lauk.forEach(p => html += productCard(p));
-                    html += '</div></div>';
-                }
-                
-                if (sembako.length > 0) {
-                    html += '<div class="category-section"><div class="category-title cat-sembako">🛒 Sembako</div><div class="product-row">';
-                    sembako.forEach(p => html += productCard(p));
-                    html += '</div></div>';
-                }
-                
-                area.innerHTML = html || '<div class="empty-section">📦<br>Belum ada produk</div>';
-            } else {
-                if (filtered.length === 0) {
-                    area.innerHTML = '<div class="empty-section">📦<br>Tidak ada produk di kategori ini</div>';
-                    return;
-                }
-                area.innerHTML = '<div class="category-section"><div class="product-row">' + filtered.map(p => productCard(p)).join('') + '</div></div>';
-            }
-        }
-        
-        function productCard(p) {
-            const emoji = p.category === 'Nasi Kuning' ? '🍚' : p.category === 'Lauk' ? '🍗' : '🛒';
-            return `<div class="product-card" onclick="addToCart('${p.id}','${p.name.replace(/'/g,"\\'")}',${p.price},'${p.category}')">
-                <span class="emoji">${emoji}</span>
-                <div class="pname">${p.name}</div>
-                <div class="pprice">${formatRupiah(p.price)}</div>
-            </div>`;
-        }
-        
-        function filterCat(cat, el) {
-            filter = cat;
-            document.querySelectorAll('.tabs .tab').forEach(t => t.classList.remove('active'));
-            el.classList.add('active');
+    }
+    
+    function loadProducts() {
+        showLoading();
+        fetchAPI('getProducts').then(data => {
+            hideLoading();
+            products = Array.isArray(data) ? data : [];
             renderProducts();
+        });
+    }
+    
+    function renderProducts() {
+        const area = document.getElementById('productArea');
+        
+        if (products.length === 0) {
+            area.innerHTML = '<div class="empty-section">📦<br>Belum ada produk</div>';
+            return;
         }
         
-        function addToCart(id, name, price, cat) {
-            const existing = cart.find(i => i.id === id);
-            if (existing) existing.qty++;
-            else cart.push({ id, name, price, category: cat, qty: 1 });
-            updateCart();
-            toast('✅ Ditambahkan');
-        }
+        let filtered = filter === 'Semua' ? products : products.filter(p => p.category === filter);
         
-        function removeFromCart(i) { cart.splice(i, 1); updateCart(); }
-        
-        function clearCart() { cart = []; updateCart(); toast('🗑️ Dikosongkan'); }
-        
-        function updateCart() {
-            const chips = document.getElementById('cartChips');
-            const total = document.getElementById('cartTotal');
-            const btn = document.getElementById('btnPay');
+        if (filter === 'Semua') {
+            const nk = products.filter(p => p.category === 'Nasi Kuning');
+            const lauk = products.filter(p => p.category === 'Lauk');
+            const sembako = products.filter(p => p.category === 'Sembako');
             
-            if (cart.length === 0) {
-                chips.innerHTML = '<div style="color:var(--muted);font-size:11px;">🛒 Keranjang kosong</div>';
-                total.textContent = 'Rp 0';
-                btn.disabled = true;
+            let html = '';
+            if (nk.length > 0) html += categorySection('🍚 Nasi Kuning', 'cat-nk', nk);
+            if (lauk.length > 0) html += categorySection('🍗 Lauk', 'cat-lauk', lauk);
+            if (sembako.length > 0) html += categorySection('🛒 Sembako', 'cat-sembako', sembako);
+            area.innerHTML = html || '<div class="empty-section">📦<br>Belum ada produk</div>';
+        } else {
+            if (filtered.length === 0) {
+                area.innerHTML = '<div class="empty-section">📦<br>Tidak ada produk</div>';
                 return;
             }
-            
-            chips.innerHTML = cart.map((item, i) => `
-                <div class="chip">${item.name} ×${item.qty} <span onclick="event.stopPropagation();removeFromCart(${i})">×</span></div>
-            `).join('');
-            
-            const sum = cart.reduce((s, i) => s + i.price * i.qty, 0);
-            total.textContent = formatRupiah(sum);
-            btn.disabled = false;
+            area.innerHTML = '<div class="category-section"><div class="product-row">' + filtered.map(p => productCard(p)).join('') + '</div></div>';
+        }
+    }
+    
+    function categorySection(title, cls, items) {
+        return `<div class="category-section"><div class="category-title ${cls}">${title}</div><div class="product-row">${items.map(p => productCard(p)).join('')}</div></div>`;
+    }
+    
+    function productCard(p) {
+        const emoji = p.category === 'Nasi Kuning' ? '🍚' : p.category === 'Lauk' ? '🍗' : '🛒';
+        return `<div class="product-card" onclick="addToCart('${p.id}','${p.name.replace(/'/g,"\\'")}',${p.price},'${p.category}')">
+            <span class="emoji">${emoji}</span>
+            <div class="pname">${p.name}</div>
+            <div class="pprice">${formatRupiah(p.price)}</div>
+        </div>`;
+    }
+    
+    function filterCat(cat, el) {
+        filter = cat;
+        document.querySelectorAll('.tabs .tab').forEach(t => t.classList.remove('active'));
+        el.classList.add('active');
+        renderProducts();
+    }
+    
+    function addToCart(id, name, price, cat) {
+        const existing = cart.find(i => i.id === id);
+        if (existing) existing.qty++;
+        else cart.push({ id, name, price, category: cat, qty: 1 });
+        updateCart();
+        toast('✅ Ditambahkan');
+    }
+    
+    function removeFromCart(i) { cart.splice(i, 1); updateCart(); }
+    function clearCart() { cart = []; updateCart(); toast('🗑️ Dikosongkan'); }
+    
+    function updateCart() {
+        const chips = document.getElementById('cartChips');
+        const total = document.getElementById('cartTotal');
+        const btn = document.getElementById('btnPay');
+        
+        if (cart.length === 0) {
+            chips.innerHTML = '<div style="color:var(--muted);font-size:11px;">🛒 Keranjang kosong</div>';
+            total.textContent = 'Rp 0';
+            btn.disabled = true;
+            return;
         }
         
-        function getCartTotal() { return cart.reduce((s, i) => s + i.price * i.qty, 0); }
+        chips.innerHTML = cart.map((item, i) => `
+            <div class="chip">${item.name} ×${item.qty} <span onclick="event.stopPropagation();removeFromCart(${i})">×</span></div>
+        `).join('');
         
-        function openPayment() {
-            if (cart.length === 0) return;
-            const total = getCartTotal();
-            document.getElementById('payAmount').textContent = formatRupiah(total);
-            document.getElementById('qrisAmount').textContent = formatRupiah(total);
-            
-            // Generate money suggestions
-            const suggestions = document.getElementById('moneySuggestions');
-            let html = '';
-            PECAHAN.forEach(p => {
-                if (p >= total || p >= total - 10000) {
-                    html += `<div class="money-chip" onclick="setCash(${p})">${formatRupiah(p)}</div>`;
-                }
-            });
-            // Always add custom round up
-            const roundedUp = Math.ceil(total / 5000) * 5000;
-            if (!PECAHAN.includes(roundedUp) || roundedUp === total) {
-                html += `<div class="money-chip" onclick="setCash(${roundedUp})">${formatRupiah(roundedUp)} (bulat)</div>`;
-            }
-            suggestions.innerHTML = html;
-            
-            document.getElementById('cashReceived').value = '';
-            document.getElementById('changeDisplay').style.display = 'none';
-            document.getElementById('tunaiSection').style.display = 'block';
-            document.getElementById('qrisSection').style.display = 'none';
-            payment = 'Tunai';
-            document.querySelectorAll('.pay-opt').forEach((el, i) => el.classList.toggle('active', i === 0));
-            
-            openModal('paymentModal');
+        const sum = cart.reduce((s, i) => s + i.price * i.qty, 0);
+        total.textContent = formatRupiah(sum);
+        btn.disabled = false;
+    }
+    
+    function getCartTotal() { return cart.reduce((s, i) => s + i.price * i.qty, 0); }
+    
+    function openPayment() {
+        if (cart.length === 0) return;
+        const total = getCartTotal();
+        document.getElementById('payAmount').textContent = formatRupiah(total);
+        document.getElementById('qrisAmount').textContent = formatRupiah(total);
+        
+        const suggestions = document.getElementById('moneySuggestions');
+        let html = '';
+        const rounded = Math.ceil(total / 500) * 500;
+        const candidates = [...new Set([rounded, rounded + 500, rounded + 1000, ...PECAHAN.filter(p => p >= total).slice(0, 2)])].sort((a,b) => a-b);
+        candidates.forEach(p => {
+            if (p >= total) html += `<div class="money-chip" onclick="setCash(${p})">${formatRupiah(p)}</div>`;
+        });
+        suggestions.innerHTML = html;
+        
+        document.getElementById('cashReceived').value = '';
+        document.getElementById('changeDisplay').style.display = 'none';
+        document.getElementById('tunaiSection').style.display = 'block';
+        document.getElementById('qrisSection').style.display = 'none';
+        payment = 'Tunai';
+        document.querySelectorAll('.pay-opt').forEach((el, i) => el.classList.toggle('active', i === 0));
+        
+        openModal('paymentModal');
+    }
+    
+    function setPayment(method, el) {
+        payment = method;
+        document.querySelectorAll('.pay-opt').forEach(o => o.classList.remove('active'));
+        el.classList.add('active');
+        document.getElementById('tunaiSection').style.display = method === 'Tunai' ? 'block' : 'none';
+        document.getElementById('qrisSection').style.display = method === 'QRIS' ? 'block' : 'none';
+    }
+    
+    function setCash(amount) {
+        document.getElementById('cashReceived').value = amount;
+        calculateChange();
+    }
+    
+    function calculateChange() {
+        const total = getCartTotal();
+        const received = Number(document.getElementById('cashReceived').value) || 0;
+        const change = received - total;
+        const display = document.getElementById('changeDisplay');
+        
+        if (received <= 0) { display.style.display = 'none'; return; }
+        display.style.display = 'block';
+        
+        if (change < 0) {
+            document.getElementById('changeAmount').textContent = '❌ Kurang ' + formatRupiah(Math.abs(change));
+            document.getElementById('changeAmount').style.color = 'var(--danger)';
+            document.getElementById('changeDetail').textContent = '';
+            return;
         }
         
-        function setPayment(method, el) {
-            payment = method;
-            document.querySelectorAll('.pay-opt').forEach(o => o.classList.remove('active'));
-            el.classList.add('active');
-            
-            document.getElementById('tunaiSection').style.display = method === 'Tunai' ? 'block' : 'none';
-            document.getElementById('qrisSection').style.display = method === 'QRIS' ? 'block' : 'none';
-        }
+        document.getElementById('changeAmount').style.color = 'var(--success)';
+        document.getElementById('changeAmount').textContent = '💰 Kembalian: ' + formatRupiah(change);
         
-        function setCash(amount) {
-            document.getElementById('cashReceived').value = amount;
-            calculateChange();
-        }
-        
-        function calculateChange() {
+        let remaining = change;
+        let detail = [];
+        PECAHAN.forEach(p => {
+            const count = Math.floor(remaining / p);
+            if (count > 0) { detail.push(`${count}× ${formatRupiah(p)}`); remaining -= count * p; }
+        });
+        document.getElementById('changeDetail').textContent = detail.length > 0 ? 'Pecahan: ' + detail.join(', ') : 'Uang pas';
+    }
+    
+    function processPayment() {
+        if (payment === 'Tunai') {
             const total = getCartTotal();
             const received = Number(document.getElementById('cashReceived').value) || 0;
-            const change = received - total;
-            const display = document.getElementById('changeDisplay');
-            
-            if (received <= 0) {
-                display.style.display = 'none';
-                return;
-            }
-            
-            display.style.display = 'block';
-            
-            if (change < 0) {
-                document.getElementById('changeAmount').textContent = '❌ Uang kurang ' + formatRupiah(Math.abs(change));
-                document.getElementById('changeAmount').style.color = 'var(--danger)';
-                document.getElementById('changeDetail').textContent = '';
-                return;
-            }
-            
-            document.getElementById('changeAmount').style.color = 'var(--success)';
-            document.getElementById('changeAmount').textContent = '💰 Kembalian: ' + formatRupiah(change);
-            
-            // Calculate pecahan
-            let remaining = change;
-            let detail = [];
-            PECAHAN.forEach(p => {
-                const count = Math.floor(remaining / p);
-                if (count > 0) {
-                    detail.push(`${count}× ${formatRupiah(p)}`);
-                    remaining -= count * p;
+            if (received < total) { toast('⚠️ Uang kurang!', true); return; }
+        }
+        
+        closeModal('paymentModal');
+        showLoading();
+        
+        const total = getCartTotal();
+        fetchAPI('saveTransaction', {
+            items: cart.map(i => ({ id:i.id, name:i.name, category:i.category, price:i.price, qty:i.qty })),
+            total: total,
+            payment: payment
+        }).then(r => {
+            hideLoading();
+            if (r.success) {
+                cart = [];
+                updateCart();
+                toast('✅ Berhasil! ' + r.session);
+                if (payment === 'Tunai') {
+                    const received = Number(document.getElementById('cashReceived').value) || 0;
+                    const change = received - total;
+                    if (change > 0) toast('💰 Kembalian: ' + formatRupiah(change));
                 }
-            });
-            
-            document.getElementById('changeDetail').textContent = detail.length > 0 ? 'Pecahan: ' + detail.join(', ') : 'Uang pas';
-        }
+            } else { toast('❌ Gagal!', true); }
+        });
+    }
+    
+    function addProduct() {
+        const name = document.getElementById('pName').value.trim();
+        const cat = document.getElementById('pCat').value;
+        const price = document.getElementById('pPrice').value;
+        if (!name || !price) return toast('⚠️ Isi semua!', true);
         
-        function processPayment() {
-            if (payment === 'Tunai') {
-                const total = getCartTotal();
-                const received = Number(document.getElementById('cashReceived').value) || 0;
-                if (received < total) {
-                    toast('⚠️ Uang kurang!', true);
-                    return;
-                }
-            }
-            
-            closeModal('paymentModal');
-            showLoading();
-            
-            const total = getCartTotal();
-            
-            fetchAPI('saveTransaction', {
-                items: cart.map(i => ({ id:i.id, name:i.name, category:i.category, price:i.price, qty:i.qty })),
-                total: total,
-                payment: payment
-            }).then(r => {
+        showLoading();
+        fetchAPI('addProduct', { name, category: cat, price: Number(price) }).then(r => {
+            hideLoading();
+            if (r.success) {
+                document.getElementById('pName').value = '';
+                document.getElementById('pPrice').value = '';
+                toast('✅ Ditambahkan!');
+                loadProducts();
+                populateSelects();
+            } else { toast('❌ Gagal!', true); }
+        });
+    }
+    
+    function updateProductPrice() {
+        const id = document.getElementById('updateSelect').value;
+        const price = document.getElementById('updatePrice').value;
+        if (!id || !price) return toast('⚠️ Lengkapi!', true);
+        
+        showLoading();
+        fetchAPI('updatePrice', { id, price: Number(price) }).then(r => {
+            hideLoading();
+            if (r.success) { document.getElementById('updatePrice').value = ''; toast('✅ Diupdate!'); loadProducts(); }
+            else { toast('❌ Gagal!', true); }
+        });
+    }
+    
+    function deleteProduct() {
+        const id = document.getElementById('deleteSelect').value;
+        if (!id || !confirm('Nonaktifkan?')) return;
+        
+        showLoading();
+        fetchAPI('deleteProduct', { id }).then(r => {
+            hideLoading();
+            if (r.success) { toast('✅ Dinonaktifkan!'); loadProducts(); populateSelects(); }
+            else { toast('❌ Gagal!', true); }
+        });
+    }
+    
+    function populateSelects() {
+        fetchAPI('getProducts').then(data => {
+            if (!Array.isArray(data)) return;
+            const opts = data.map(p => `<option value="${p.id}">${p.name} - ${formatRupiah(p.price)}</option>`).join('');
+            document.getElementById('updateSelect').innerHTML = opts;
+            document.getElementById('deleteSelect').innerHTML = opts;
+        });
+    }
+    
+    function switchReport() {
+        document.getElementById('dailyDate').style.display = document.getElementById('reportType').value === 'daily' ? 'block' : 'none';
+        document.getElementById('monthlyDate').style.display = document.getElementById('reportType').value === 'monthly' ? 'block' : 'none';
+        loadReport();
+    }
+    
+    function loadReport() {
+        const type = document.getElementById('reportType').value;
+        showLoading();
+        
+        if (type === 'daily') {
+            const date = document.getElementById('rDate').value;
+            if (!date) { hideLoading(); return; }
+            fetchAPI('getDailyReport', null, '&date=' + date).then(r => {
                 hideLoading();
-                if (r.success) {
-                    cart = [];
-                    updateCart();
-                    toast('✅ Berhasil! ' + r.session);
-                    if (payment === 'Tunai') {
-                        const received = Number(document.getElementById('cashReceived').value) || 0;
-                        const change = received - total;
-                        if (change > 0) toast('💰 Kembalian: ' + formatRupiah(change));
-                    }
-                } else {
-                    toast('❌ Gagal!', true);
-                }
-            });
-        }
-        
-        function addProduct() {
-            const name = document.getElementById('pName').value.trim();
-            const cat = document.getElementById('pCat').value;
-            const price = document.getElementById('pPrice').value;
-            if (!name || !price) return toast('⚠️ Isi semua field!', true);
-            
-            showLoading();
-            fetchAPI('addProduct', { name, category: cat, price: Number(price) }).then(r => {
+                console.log('Daily report:', r);
+                displayDaily(r);
+            }).catch(e => { hideLoading(); console.error(e); });
+        } else {
+            const mv = document.getElementById('rMonth').value;
+            if (!mv) { hideLoading(); return; }
+            const [y, m] = mv.split('-');
+            fetchAPI('getMonthlyReport', null, '&month=' + m + '&year=' + y).then(r => {
                 hideLoading();
-                if (r.success) {
-                    document.getElementById('pName').value = '';
-                    document.getElementById('pPrice').value = '';
-                    toast('✅ Ditambahkan!');
-                    loadProducts();
-                    populateSelects();
-                } else { toast('❌ Gagal!', true); }
-            });
+                console.log('Monthly report:', r);
+                displayMonthly(r);
+            }).catch(e => { hideLoading(); console.error(e); });
+        }
+    }
+    
+    function displayCategoryRow(label, data, emoji) {
+        if (!data) return '';
+        return `
+            <div style="margin:8px 0; padding:8px; background:rgba(255,255,255,0.03); border-radius:8px;">
+                <div style="font-weight:700; font-size:12px; margin-bottom:4px;">${emoji} ${label}</div>
+                <div class="report-row"><span>💵 Tunai</span><span>${formatRupiah(data.tunai || 0)}</span></div>
+                <div class="report-row"><span>📱 QRIS</span><span>${formatRupiah(data.qris || 0)}</span></div>
+                <div class="report-row" style="font-weight:700; color:var(--primary);"><span>Total ${label}</span><span>${formatRupiah(data.total || 0)}</span></div>
+            </div>
+        `;
+    }
+    
+    function displayDaily(r) {
+        const c = document.getElementById('reportContent');
+        
+        if (!r || r.total === undefined || r.total === null) {
+            c.innerHTML = '<p style="color:var(--muted); text-align:center; padding:20px;">📭 Tidak ada data untuk tanggal ini</p>';
+            return;
         }
         
-        function updateProductPrice() {
-            const id = document.getElementById('updateSelect').value;
-            const price = document.getElementById('updatePrice').value;
-            if (!id || !price) return toast('⚠️ Lengkapi!', true);
-            
-            showLoading();
-            fetchAPI('updatePrice', { id, price: Number(price) }).then(r => {
-                hideLoading();
-                if (r.success) { document.getElementById('updatePrice').value = ''; toast('✅ Diupdate!'); loadProducts(); }
-                else { toast('❌ Gagal!', true); }
-            });
-        }
-        
-        function deleteProduct() {
-            const id = document.getElementById('deleteSelect').value;
-            if (!id) return;
-            if (!confirm('Nonaktifkan?')) return;
-            
-            showLoading();
-            fetchAPI('deleteProduct', { id }).then(r => {
-                hideLoading();
-                if (r.success) { toast('✅ Dinonaktifkan!'); loadProducts(); populateSelects(); }
-                else { toast('❌ Gagal!', true); }
-            });
-        }
-        
-        function populateSelects() {
-            fetchAPI('getProducts').then(data => {
-                if (!Array.isArray(data)) return;
-                const opts = data.map(p => `<option value="${p.id}">${p.name} - ${formatRupiah(p.price)}</option>`).join('');
-                document.getElementById('updateSelect').innerHTML = opts;
-                document.getElementById('deleteSelect').innerHTML = opts;
-            });
-        }
-        
-        function switchReport() {
-            document.getElementById('dailyDate').style.display = document.getElementById('reportType').value === 'daily' ? 'block' : 'none';
-            document.getElementById('monthlyDate').style.display = document.getElementById('reportType').value === 'monthly' ? 'block' : 'none';
-            loadReport();
-        }
-        
-        function loadReport() {
-            const type = document.getElementById('reportType').value;
-            showLoading();
-            
-            if (type === 'daily') {
-                const date = document.getElementById('rDate').value;
-                if (!date) { hideLoading(); return; }
-                fetchAPI('getDailyReport', null, '&date=' + date).then(r => {
-                    hideLoading();
-                    displayDaily(r);
-                }).catch(() => { hideLoading(); });
-            } else {
-                const mv = document.getElementById('rMonth').value;
-                if (!mv) { hideLoading(); return; }
-                const [y, m] = mv.split('-');
-                fetchAPI('getMonthlyReport', null, '&month=' + m + '&year=' + y).then(r => {
-                    hideLoading();
-                    displayMonthly(r);
-                }).catch(() => { hideLoading(); });
-            }
-        }
-        
-        function displayDaily(r) {
-            const c = document.getElementById('reportContent');
-            if (!r || r.total === undefined) {
-                c.innerHTML = '<p style="color:var(--muted);">Tidak ada data</p>';
-                return;
-            }
-            
-            const pt = r.pagi.nk + r.pagi.lauk + r.pagi.sembako;
-            const mt = r.malam.nk + r.malam.lauk + r.malam.sembako;
-            
-            c.innerHTML = `
-                <div class="report-card">
-                    <div style="display:flex;justify-content:space-between;align-items:center;">
-                        <h4>📅 ${r.date}</h4>
-                        <button class="btn-sm" onclick="showDetail('${r.date}')">📋 Rincian</button>
-                    </div>
-                    
-                    <h4 style="color:#fbbf24;">🌅 Pagi (${r.pagi.trx} transaksi)</h4>
-                    <div class="report-row"><span>🍚 Nasi Kuning</span><span>${formatRupiah(r.pagi.nk)}</span></div>
-                    <div class="report-row"><span>🍗 Lauk</span><span>${formatRupiah(r.pagi.lauk)}</span></div>
-                    <div class="report-row"><span>🛒 Sembako</span><span>${formatRupiah(r.pagi.sembako)}</span></div>
-                    <div class="report-total">Subtotal Pagi: ${formatRupiah(pt)}</div>
-                    
-                    <h4 style="color:#818cf8;margin-top:12px;">🌙 Malam (${r.malam.trx} transaksi)</h4>
-                    <div class="report-row"><span>🍚 Nasi Kuning</span><span>${formatRupiah(r.malam.nk)}</span></div>
-                    <div class="report-row"><span>🍗 Lauk</span><span>${formatRupiah(r.malam.lauk)}</span></div>
-                    <div class="report-row"><span>🛒 Sembako</span><span>${formatRupiah(r.malam.sembako)}</span></div>
-                    <div class="report-total">Subtotal Malam: ${formatRupiah(mt)}</div>
-                    
-                    <div class="report-total grand">💰 Total Harian: ${formatRupiah(r.total)}</div>
+        let html = `
+            <div class="report-card">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                    <h4 style="margin:0;">📅 ${r.date}</h4>
+                    <button class="btn-sm" onclick="showDetail('${r.date}')">📋 Rincian</button>
                 </div>
-            `;
-        }
-        
-        function showDetail(date) {
-            showLoading();
-            fetchAPI('getDailyDetail', null, '&date=' + date).then(r => {
-                hideLoading();
-                const c = document.getElementById('detailContent');
                 
-                if (!r || !r.transactions || r.transactions.length === 0) {
-                    c.innerHTML = '<p style="color:var(--muted);">Tidak ada transaksi</p>';
-                } else {
-                    let html = `<p style="color:var(--muted);font-size:12px;margin-bottom:12px;">📅 ${r.date} - ${r.transactions.length} transaksi</p>`;
-                    
-                    r.transactions.forEach(t => {
-                        html += `
-                            <div class="detail-item">
-                                <div class="detail-header">
-                                    <span>${t.id}</span>
-                                    <span style="color:${t.session==='Pagi'?'#fbbf24':'#818cf8'}">${t.session==='Pagi'?'🌅':'🌙'} ${t.time}</span>
-                                </div>
-                                ${t.items.map(i => `
-                                    <div class="detail-row">
-                                        <span>${i.name} ×${i.qty}</span>
-                                        <span>${formatRupiah(i.subtotal)}</span>
-                                    </div>
-                                `).join('')}
-                                <div style="display:flex;justify-content:space-between;font-weight:700;margin-top:6px;padding-top:6px;border-top:1px solid var(--border);font-size:12px;">
-                                    <span>Total (${t.payment})</span>
-                                    <span>${formatRupiah(t.total)}</span>
-                                </div>
+                <h4 style="color:#fbbf24;">🌅 Sesi Pagi (${r.pagi?.trx || 0} transaksi)</h4>
+                ${displayCategoryRow('Nasi Kuning', r.pagi?.nk, '🍚')}
+                ${displayCategoryRow('Lauk', r.pagi?.lauk, '🍗')}
+                ${displayCategoryRow('Sembako', r.pagi?.sembako, '🛒')}
+                <div class="report-total">Subtotal Pagi: ${formatRupiah(r.pagi?.total || 0)}</div>
+                
+                <h4 style="color:#818cf8;margin-top:14px;">🌙 Sesi Malam (${r.malam?.trx || 0} transaksi)</h4>
+                ${displayCategoryRow('Nasi Kuning', r.malam?.nk, '🍚')}
+                ${displayCategoryRow('Lauk', r.malam?.lauk, '🍗')}
+                ${displayCategoryRow('Sembako', r.malam?.sembako, '🛒')}
+                <div class="report-total">Subtotal Malam: ${formatRupiah(r.malam?.total || 0)}</div>
+                
+                <div class="report-total grand" style="font-size:18px; margin-top:14px;">💰 Total Harian: ${formatRupiah(r.total || 0)}</div>
+            </div>
+        `;
+        
+        c.innerHTML = html;
+    }
+    
+    function showDetail(date) {
+        showLoading();
+        fetchAPI('getDailyDetail', null, '&date=' + date).then(r => {
+            hideLoading();
+            const c = document.getElementById('detailContent');
+            
+            if (!r || !r.transactions || r.transactions.length === 0) {
+                c.innerHTML = '<p style="color:var(--muted);text-align:center;padding:20px;">Tidak ada transaksi</p>';
+            } else {
+                let html = `<p style="color:var(--muted);font-size:12px;margin-bottom:12px;">📅 ${r.date} · ${r.transactions.length} transaksi</p>`;
+                
+                r.transactions.forEach(t => {
+                    html += `
+                        <div class="detail-item">
+                            <div class="detail-header">
+                                <span>#${t.id.slice(-8)}</span>
+                                <span style="color:${t.session==='Pagi'?'#fbbf24':'#818cf8'}">${t.session==='Pagi'?'🌅':'🌙'} ${t.time}</span>
                             </div>
-                        `;
-                    });
-                    
-                    c.innerHTML = html;
-                }
+                            ${t.items.map(i => `
+                                <div class="detail-row"><span>${i.name} ×${i.qty}</span><span>${formatRupiah(i.subtotal)}</span></div>
+                            `).join('')}
+                            <div style="display:flex;justify-content:space-between;font-weight:700;margin-top:6px;padding-top:6px;border-top:1px solid var(--border);font-size:12px;">
+                                <span>${t.payment}</span>
+                                <span>${formatRupiah(t.total)}</span>
+                            </div>
+                        </div>
+                    `;
+                });
                 
-                openModal('detailModal');
-            }).catch(() => { hideLoading(); });
-        }
-        
-        function displayMonthly(r) {
-            const c = document.getElementById('reportContent');
-            if (!r || r.total === undefined) {
-                c.innerHTML = '<p style="color:var(--muted);">Tidak ada data</p>';
-                return;
+                c.innerHTML = html;
             }
             
-            let days = '';
+            openModal('detailModal');
+        }).catch(e => { hideLoading(); console.error(e); });
+    }
+    
+    function displayMonthly(r) {
+        const c = document.getElementById('reportContent');
+        
+        if (!r || r.total === undefined || r.total === null) {
+            c.innerHTML = '<p style="color:var(--muted);text-align:center;padding:20px;">📭 Tidak ada data untuk bulan ini</p>';
+            return;
+        }
+        
+        let days = '';
+        if (r.days) {
             Object.keys(r.days).sort().forEach(d => {
                 days += `<div class="report-row"><span>📅 Tgl ${d}</span><span>${formatRupiah(r.days[d])}</span></div>`;
             });
-            
-            c.innerHTML = `
-                <div class="report-card">
-                    <h4>📆 Bulan ${r.month}/${r.year}</h4>
-                    
-                    <h4 style="color:#fbbf24;">🌅 Pagi</h4>
-                    <div class="report-row"><span>🍚 Nasi Kuning</span><span>${formatRupiah(r.cat.nk.pagi)}</span></div>
-                    <div class="report-row"><span>🍗 Lauk</span><span>${formatRupiah(r.cat.lauk.pagi)}</span></div>
-                    <div class="report-row"><span>🛒 Sembako</span><span>${formatRupiah(r.cat.sembako.pagi)}</span></div>
-                    
-                    <h4 style="color:#818cf8;margin-top:12px;">🌙 Malam</h4>
-                    <div class="report-row"><span>🍚 Nasi Kuning</span><span>${formatRupiah(r.cat.nk.malam)}</span></div>
-                    <div class="report-row"><span>🍗 Lauk</span><span>${formatRupiah(r.cat.lauk.malam)}</span></div>
-                    <div class="report-row"><span>🛒 Sembako</span><span>${formatRupiah(r.cat.sembako.malam)}</span></div>
-                    
-                    <h4 style="margin-top:12px;">📅 Per Hari</h4>
-                    ${days || '<p style="color:var(--muted);">Tidak ada data</p>'}
-                    
-                    <div class="report-total grand">💰 Total Bulanan: ${formatRupiah(r.total)}</div>
-                </div>
-            `;
         }
         
-        function openModal(id) {
-            document.getElementById(id).classList.add('show');
-            if (id === 'productModal') populateSelects();
-            if (id === 'reportModal') loadReport();
-        }
+        const nk = r.cat?.nk || {};
+        const lauk = r.cat?.lauk || {};
+        const sembako = r.cat?.sembako || {};
         
-        function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+        let html = `
+            <div class="report-card">
+                <h4>📆 Bulan ${r.month}/${r.year}</h4>
+                
+                <h4 style="color:#fbbf24; margin-top:12px;">🌅 Sesi Pagi</h4>
+                ${displayCategoryRow('Nasi Kuning', nk.pagi, '🍚')}
+                ${displayCategoryRow('Lauk', lauk.pagi, '🍗')}
+                ${displayCategoryRow('Sembako', sembako.pagi, '🛒')}
+                
+                <h4 style="color:#818cf8; margin-top:14px;">🌙 Sesi Malam</h4>
+                ${displayCategoryRow('Nasi Kuning', nk.malam, '🍚')}
+                ${displayCategoryRow('Lauk', lauk.malam, '🍗')}
+                ${displayCategoryRow('Sembako', sembako.malam, '🛒')}
+                
+                ${days ? '<h4 style="margin-top:14px;">📅 Rincian Per Hari</h4>' + days : ''}
+                
+                <div class="report-total grand" style="font-size:18px; margin-top:14px;">💰 Total Bulanan: ${formatRupiah(r.total || 0)}</div>
+            </div>
+        `;
         
-        function toast(msg, isErr = false) {
-            const container = document.getElementById('toastContainer');
-            const el = document.createElement('div');
-            el.className = 'toast' + (isErr ? ' err' : '');
-            el.textContent = msg;
-            container.appendChild(el);
-            setTimeout(() => { el.style.opacity = '0'; el.style.transition = '0.3s'; setTimeout(() => el.remove(), 300); }, 2000);
-        }
-        
-        function showLoading() { document.getElementById('loading').classList.add('show'); }
-        function hideLoading() { document.getElementById('loading').classList.remove('show'); }
-        
-        document.addEventListener('click', e => {
-            if (e.target.classList.contains('modal')) e.target.classList.remove('show');
-        });
-    </script>
+        c.innerHTML = html;
+    }
+    
+    function openModal(id) {
+        document.getElementById(id).classList.add('show');
+        if (id === 'productModal') populateSelects();
+        if (id === 'reportModal') loadReport();
+    }
+    
+    function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+    
+    function toast(msg, isErr = false) {
+        const container = document.getElementById('toastContainer');
+        const el = document.createElement('div');
+        el.className = 'toast' + (isErr ? ' err' : '');
+        el.textContent = msg;
+        container.appendChild(el);
+        setTimeout(() => { el.style.opacity = '0'; el.style.transition = '0.3s'; setTimeout(() => el.remove(), 300); }, 2000);
+    }
+    
+    function showLoading() { document.getElementById('loading').classList.add('show'); }
+    function hideLoading() { document.getElementById('loading').classList.remove('show'); }
+    
+    document.addEventListener('click', e => {
+        if (e.target.classList.contains('modal')) e.target.classList.remove('show');
+    });
+</script>
 </body>
 </html>
